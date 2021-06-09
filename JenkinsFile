@@ -1,0 +1,17 @@
+node('linux')
+{
+	properties([
+		parameters([
+			string(defaultValue: 'DEVOPS-1234', description: 'Defining parameter for  jira ticket', name: 'jira_ticket', trim: false),
+		])
+	])
+	stage('Fetch Product Repo'){
+		echo 'git close repo'
+	}
+	stage('Source Code Analysis'){
+		echo 'start analysis'
+	}
+	stage('Generate the report'){
+		echo 'generate report'
+	}
+}
