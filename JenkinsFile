@@ -73,25 +73,22 @@ def corestacks(){
         def current_dir = pwd()
 
         image = docker.build(
-            "core-stacks:${commit_hash_date}",
+            "core-stacks:core-stacks",
                 "--build-arg HOME=${HOME} \
                  --build-arg UID=${uid} \
                  --build-arg USER=${USER} \
                  --build-arg GID=${gid} \
                  --build-arg GROUP=${group} \
                  --build-arg PWD=${current_dir} \
-                 --build-arg BRANCH=${BRANCH} \
-                 --build-arg PW_BUILD_TAG=${PW_BUILD_TAG} \
+                 --build-arg BRANCH=${PW_BRANCH} \
                  -f docker/Dockerfile.user docker"
         )
 		image.inside('-v"${HOME}":${HOME}') {
-            sh """
 				sh 'make fdd.x86.install.6'
                 sh 'make fdd.x86.install.8'
                 sh 'make fdd.t2k.install'
-                #sh 'make fdd.t3k.install'
+                //sh 'make fdd.t3k.install'
                 sh 'make tdd.t2k.install'
-			"""
         }
 		
 	}
@@ -103,7 +100,7 @@ def osmo2g(){
         def group = sh(label: "Read user group name", returnStdout: true, script: "id -gn").trim()
         def current_dir = pwd()
         image = docker.build(
-            "osmo2g:${commit_hash_date}",
+            "osmo2g:osmo2g",
             "--build-arg HOME=${HOME} \
              --build-arg UID=${uid} \
              --build-arg USER=${USER} \
@@ -124,7 +121,7 @@ def twogstack(){
         def group = sh(label: "Read user group name", returnStdout: true, script: "id -gn").trim()
         def current_dir = pwd()
         image = docker.build(
-            "2g-stack:${env.commit_hash_date}",
+            "2g-stack:2g-stack",
             "--build-arg HOME=${HOME} \
              --build-arg UID=${uid} \
              --build-arg USER=${USER} \
