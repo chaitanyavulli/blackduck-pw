@@ -76,6 +76,7 @@ timestamps{
 							if ("$sizeWorkspace" > 41246720)
 							{
 								sh """
+									find . -empty -type d -delete
 									/opt/bd_tools/enhanced-splitter.sh "Access" develop-HEAD "${REPOSITORY_NAME}" "${REPOSITORY_NAME}" "$projectSourcePath"
 								"""
 							}
@@ -370,6 +371,7 @@ def pnfvnf(){
                                     pwApplExe \
                                 "
                             )
+						}
 					}
 	}
 }
