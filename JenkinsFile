@@ -1,36 +1,76 @@
 #!/user/bin/env groovy
 import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
-node('c7-nhdocker')
+node('blackduck-scan')
 {
+timestamps{
 	properties([
 		parameters([
 			string(defaultValue: 'network', description: 'Defining parameter for repository name', name: 'REPOSITORY_NAME', trim: false),
 			string(defaultValue: 'develop', description: 'Defining parameter for branch name', name: 'PW_BRANCH', trim: false),
 		])
 	])
+	def BDToken="MTdiOWNkYTQtZDA2Yy00YzBhLTk0MzctMDMxMzU4MGQ0YWY1OjU3ODZjOGM4LTVkMDYtNDA0ZS1iNWNhLTVlMDYzZTg4ZTVhNw=="
 	def verCode = UUID.randomUUID().toString()
+	currentBuild.displayName = "#${BUILD_NUMBER}, ${REPOSITORY_NAME}"
+	currentBuild.description = "#${BUILD_NUMBER}, ${PW_BRANCH}"
 	dir("${verCode}")
 	{
-		stage('Fetch Product Repository'){
-			checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'ScmName', name: '${REPOSITORY_NAME}']], userRemoteConfigs: [[credentialsId: 'e8ff24f6-10d1-4129-8c70-7c66d7c2d6d7', url: 'ssh://git@git.parallelwireless.net:7999/cd/${REPOSITORY_NAME}.git']]])
-		}
-		stage('Build Product'){
-			REPONAME = "${REPOSITORY_NAME}".replaceAll("-","");
-			if ("$REPONAME" == "2gstack")
-			{
-				REPONAME="twogstack"
+		try{
+			stage('Fetch Product Repository'){
+				//checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'ScmName', name: '${REPOSITORY_NAME}']], userRemoteConfigs: [[credentialsId: 'e8ff24f6-10d1-4129-8c70-7c66d7c2d6d7', url: 'ssh://git@git.parallelwireless.net:7999/cd/${REPOSITORY_NAME}.git']]])
+				checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/cd/${REPOSITORY_NAME}.git']]])
 			}
-			"$REPONAME"()
+			stage('Build Product'){
+				REPONAME = "${REPOSITORY_NAME}".replaceAll("-","");
+				if ("$REPONAME" == "2gstack")
+				{
+					REPONAME="twogstack"
+				}
+				"$REPONAME"()
+			}
+			stage('Blackduck Analysis'){
+				dir("${REPOSITORY_NAME}"){
+					sizeWorkspace = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}".size()
+					if ("$sizeWorkspace" > 41246720)
+					{
+						sh """
+							/opt/bd_tools/enhanced-splitter.sh "${REPOSITORY_NAME}" develop-HEAD "${REPOSITORY_NAME}" "${REPOSITORY_NAME}" "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}/"
+						"""
+					}
+					else
+					{
+						sh """
+							curl -O 'https://detect.synopsys.com/detect.sh'
+							chmod +x detect.sh
+							./detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --blackduck.project.name=${REPOSITORY_NAME} --detect.source.path="${WORKSPACE}/${verCode}/${REPOSITORY_NAME}/" --detect.code-location.name="${REPOSITORY_NAME}-develop-HEAD" --detect.project.version.name=develop-HEAD --detect.project.version.update=true 
+						"""
+					}
+				}
+			}
+			stage('Generate the report'){
+				dir("${REPOSITORY_NAME}"){
+				sh """
+					./detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name=${REPOSITORY_NAME} --detect.code-location.name="${REPOSITORY_NAME}-develop-HEAD" --detect.project.version.name=develop-HEAD --detect.risk.report.pdf=true --detect.risk.report.pdf.path=.
+					ls -altr
+					mkdir -p /home/sa.pw-bldmgr/BD-reports/${REPOSITORY_NAME}
+					cp *.pdf /home/sa.pw-bldmgr/BD-reports/${REPOSITORY_NAME}/
+				"""
+				}
+			}
+            currentBuild.result = 'SUCCESS'
+        }
+        catch (Exception Error) {
+			  throw Error
+              currentBuild.result = 'FAILURE'
+        }
+		finally{
+			cleanWs()
 		}
-		stage('Blackduck Analysis'){
-			echo 'start analysis'
-		}
-		stage('Generate the report'){
-			echo 'generate report'
-		}
-		cleanWs()
 	}
-}
+}//end of timestamps
+}//end of node
+
+
 def network()
 {
 	sh '''
