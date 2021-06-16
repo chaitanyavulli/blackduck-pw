@@ -30,26 +30,71 @@ timestamps{
 			}
 			stage('Blackduck Analysis'){
 				dir("${REPOSITORY_NAME}"){
-					sizeWorkspace = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}".size()
-					if ("$sizeWorkspace" > 41246720)
+					def projectSourcePath=""
+					if ("${REPOSITORY_NAME}" == "network")
 					{
-						sh """
-							/opt/bd_tools/enhanced-splitter.sh "${REPOSITORY_NAME}" develop-HEAD "${REPOSITORY_NAME}" "${REPOSITORY_NAME}" "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}/"
-						"""
+						projectSourcePath = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}/hng"
+					}
+					else if ("${REPOSITORY_NAME}" == "core")
+					{
+						projectSourcePath = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}/vru"
+					}
+					else if ("${REPOSITORY_NAME}" == "core-stacks")
+					{
+						projectSourcePath = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}/ltestack"
 					}
 					else
 					{
-						sh """
-							curl -O 'https://detect.synopsys.com/detect.sh'
-							chmod +x detect.sh
-							./detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --blackduck.project.name=${REPOSITORY_NAME} --detect.source.path="${WORKSPACE}/${verCode}/${REPOSITORY_NAME}/" --detect.code-location.name="${REPOSITORY_NAME}-develop-HEAD" --detect.project.version.name=develop-HEAD --detect.project.version.update=true 
-						"""
+						projectSourcePath = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}/"
+					}
+					sizeWorkspace = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}".size()
+					def NetworkRepos = ['network', 'nrtric', 'pwconfig', 'pwgui', 'rt-monitoring']
+					def AccessRepos = ['core', '2g-stack', 'osmo2g', 'core-stacks', 'vru-2g-phy', 'vru-3g-phy', 'vru-4g-phy', 'vru-5g-phy', 'nodeh', 'cws-rrh', 'pnf-vnf', 'bbpms_bsp', 'nr-stack']
+					NetworkRepos.each { 
+						if ("${REPOSITORY_NAME}" == it)
+						{
+							if ("$sizeWorkspace" > 41246720)
+							{
+								sh """
+									find . -empty -type d -delete
+									/opt/bd_tools/enhanced-splitter.sh "Network" develop-HEAD "${REPOSITORY_NAME}" "${REPOSITORY_NAME}" "$projectSourcePath"
+								"""
+							}
+							else
+							{
+								sh """
+									curl -O 'https://detect.synopsys.com/detect.sh'
+									chmod +x detect.sh
+									./detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name=Network --detect.source.path="$projectSourcePath" --detect.code-location.name="${REPOSITORY_NAME}-develop-HEAD" --detect.project.version.name=develop-HEAD --detect.project.version.update=true 
+								"""
+							}
+						}
+					}
+					AccessRepos.each { 
+						if ("${REPOSITORY_NAME}" == it)
+						{
+							if ("$sizeWorkspace" > 41246720)
+							{
+								sh """
+									/opt/bd_tools/enhanced-splitter.sh "Access" develop-HEAD "${REPOSITORY_NAME}" "${REPOSITORY_NAME}" "$projectSourcePath"
+								"""
+							}
+							else
+							{
+								sh """
+									curl -O 'https://detect.synopsys.com/detect.sh'
+									chmod +x detect.sh
+									./detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name=Access --detect.source.path="$projectSourcePath" --detect.code-location.name="${REPOSITORY_NAME}-develop-HEAD" --detect.project.version.name=develop-HEAD --detect.project.version.update=true 
+								"""
+							}
+						}
 					}
 				}
 			}
 			stage('Generate the report'){
 				dir("${REPOSITORY_NAME}"){
 				sh """
+					curl -O 'https://detect.synopsys.com/detect.sh'
 					./detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name=${REPOSITORY_NAME} --detect.code-location.name="${REPOSITORY_NAME}-develop-HEAD" --detect.project.version.name=develop-HEAD --detect.risk.report.pdf=true --detect.risk.report.pdf.path=.
 					ls -altr
 					mkdir -p /home/sa.pw-bldmgr/BD-reports/${REPOSITORY_NAME}
@@ -74,7 +119,7 @@ timestamps{
 def network()
 {
 	sh '''
-	cd core/hng/ci_scripts/build/
+	cd hng/ci_scripts/build/
 	python hng-build.py build-docker
 	python hng-build.py make clean.all
 	python hng-build.py ci_scripts/build/get-3rd-party-pkgs.py
@@ -100,6 +145,14 @@ def vru3gphy()
 def vru2gphy()
 {
 	dir('vru-2g-phy'){
+		sh '''
+			sh -xe ci-build.sh
+		'''
+	}
+}
+def vru5gphy()
+{
+	dir('vru-5g-phy'){
 		sh '''
 			sh -xe ci-build.sh
 		'''
@@ -177,5 +230,203 @@ def twogstack(){
 				make 2g.dist
 			"""
         }
+	}
+}
+def core()
+{
+	dir('core/vru'){
+		sh """
+			sh -xe ci-build.sh
+		"""
+	}
+}
+def nodeh()
+{
+	dir('nodeh'){
+		def uid = sh(label: "Read user UID", returnStdout: true, script: "id -u").trim()
+        def gid = sh(label: "Read user GID", returnStdout: true, script: "id -g").trim()
+        def group = sh(label: "Read user group name", returnStdout: true, script: "id -gn").trim()
+        def current_dir = pwd()
+
+        image = docker.build(
+            "nodeh:${commit_hash_date}",
+            "--build-arg HOME=${HOME} \
+             --build-arg UID=${uid} \
+             --build-arg USER=${USER} \
+             --build-arg GID=${gid} \
+             --build-arg GROUP=${group} \
+             --build-arg PWD=${current_dir} \
+             -f docker/Dockerfile.user docker"
+        )
+		
+	}
+}
+def cwsrrh(){
+	dir('cws-rrh'){
+		sh """
+			sh -xe build.sh 2g-ceva
+			sh -xe build.sh 3g-ceva
+		"""
+	}
+}
+def pnfvnf(){
+	dir('pnf-vnf'){
+	    def uid = sh(label: "Read user UID", returnStdout: true, script: "id -u").trim()
+        def gid = sh(label: "Read user GID", returnStdout: true, script: "id -g").trim()
+        def group = sh(label: "Read user group name", returnStdout: true, script: "id -gn").trim()
+        def current_dir = pwd()
+
+        image = docker.build(
+            "pnf-vnf:${commit_hash_date}",
+            "--build-arg HOME=${HOME} \
+             --build-arg UID=${uid} \
+             --build-arg USER=${USER} \
+             --build-arg GID=${gid} \
+             --build-arg GROUP=${group} \
+             --build-arg PWD=${current_dir} \
+             -f docker/Dockerfile.user docker"
+        )
+                    image.inside('-v"${HOME}":${HOME}') {
+                        dir("PW/product") {
+                            def uncrustify_ignore = "\
+                                -not -path '*/do/*' \
+                                -not -path '*/import/*' \
+                                -not -path '*/common/codecs/interface/*' \
+                                -not -path '*/tests/*' \
+                                -not -path '*/framework/logging/interface/loggingUtils_if.hpp' \
+                                -not -path '*/pnf/downlink/module/decodeFsm.cpp' \
+                                -not -path '*/pnf/downlink/module/decodeMessage.cpp' \
+                                -not -path '*/pnf/downlink/module/downlinkP7.cpp' \
+                                -not -path '*/pnf/uplink/module/encode.cpp' \
+                                -not -path '*/pnf/uplink/module/uplink.cpp' \
+                                -not -path '*/pnf/uplink/module/discardTimer.cpp' \
+                                -not -path '*/pnf/uplink/module/tl_kheap.h' \
+                                -not -path '*/pnf/main/module/pnfMain.cpp' \
+                                -not -path '*/pnf/main/module/tl_kheap.h' \
+                                -not -path '*/vnf/commsUl/module/commsUl.hpp' \
+                                -not -path '*/vnf/commsUl/module/commsUlHandler.cpp' \
+                                -not -path '*/vnf/commsUl/module/decode.cpp' \
+                                -not -path '*/vnf/commsDl/module/commsDlHandler.cpp' \
+                                "
+                            def uncrustify_files = sh(
+                                label: "Find files",
+                                script: "\
+                                    find -type f \
+                                    -regextype posix-extended \
+                                    -regex '.*\\.[ch](pp)?\$' \
+                                    ${uncrustify_ignore} \
+                                    -printf '%p ' \
+                                ",
+                                returnStdout: true
+                            )
+                            
+                            sh(
+                                label: "Run uncrustify",
+                                script: "\
+                                    ../../tools/uncrustify/uncrustify --check \
+                                    -c ../../tools/uncrustify/accelleran.cfg \
+                                    ${uncrustify_files} \
+                                "
+                            )
+                        }
+                    }
+                    image.inside('-v"${HOME}":${HOME}') {
+                        full_hash = sh(
+                            label: "Get short commit hash",
+                            returnStdout: true,
+                            script: "git log --format=format:%H -n 1"
+                        ).trim()
+
+
+                        def threadCount = sh(
+                            label: "Read jobs count",
+                            returnStdout: true,
+                            script: "nproc --all"
+                        ).trim()
+                        
+                        dir("PW/product") {
+                            sh(
+                                label: "Build TTCN Test",
+                                script: "\
+                                    scons -j${threadCount} \
+                                    --buildApplication=APPL-FDD \
+                                    --buildMode=CONTINUOUS \
+                                    --buildType=TTCNTEST \
+                                    --logSeverity=DEBUG_SEVERITY \
+                                    --wls-dpdk \
+                                    pwApplExe \
+                                "
+                            )
+
+                            sh(
+                                label: "Build Product",
+                                script: "\
+                                    scons -j${threadCount} \
+                                    --buildApplication=APPL-FDD \
+                                    --buildMode=CONTINUOUS \
+                                    --buildType=PRODUCTION \
+                                    --logSeverity=ERROR_SEVERITY \
+                                    --wls-dpdk \
+                                    pwApplExe \
+                                "
+                            )
+					}
+	}
+}
+def nrstack(){
+	dir('nr-stack'){
+                    def uid = sh(label: "Read user UID", returnStdout: true, script: "id -u").trim()
+                    def gid = sh(label: "Read user GID", returnStdout: true, script: "id -g").trim()
+                    def group = sh(label: "Read user group name", returnStdout: true, script: "id -gn").trim()
+                    def current_dir = pwd()
+
+                    image = docker.build(
+                        "nr-stacks:${commit_hash_date}",
+                        "--build-arg HOME=${HOME} \
+                         --build-arg UID=${uid} \
+                         --build-arg USER=${USER} \
+                         --build-arg GID=${gid} \
+                         --build-arg GROUP=${group} \
+                         --build-arg PWD=${current_dir} \
+                         -f docker/Dockerfile.user docker"
+                    )
+                    image.inside('-v"${HOME}":${HOME}') {
+                        /* fail on error
+                        sh """
+                            sh -xe build.sh all sa intel
+                        """
+                        */
+                        sh './build.sh all sa intel'
+                    }
+					image.inside('-v"${HOME}":${HOME}') {
+                        full_hash = sh(
+                            label: "Get full commit hash",
+                            returnStdout: true,
+                            script: "git log --format=format:%H -n 1"
+                        ).trim()
+                        /* fail on error
+                        sh """
+                            sh -xe build.sh all sa host
+                        """
+                        */
+                        sh 'free -g'
+                        sh './build.sh all sa host'
+                    }
+	
+	}
+}
+def pwconfig(){
+	dir('pwconfig'){
+	
+	}
+}
+def pwgui(){
+	dir('pwgui'){
+	
+	}
+}
+def rtmonitoring(){
+	dir('rt-monitoring'){
+	
 	}
 }
