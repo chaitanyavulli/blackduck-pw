@@ -11,6 +11,7 @@ timestamps{
 	])
 	def BDToken="MTdiOWNkYTQtZDA2Yy00YzBhLTk0MzctMDMxMzU4MGQ0YWY1OjU3ODZjOGM4LTVkMDYtNDA0ZS1iNWNhLTVlMDYzZTg4ZTVhNw=="
 	def verCode = UUID.randomUUID().toString()
+	
 	currentBuild.displayName = "#${BUILD_NUMBER}, ${REPOSITORY_NAME}"
 	currentBuild.description = "#${BUILD_NUMBER}, ${PW_BRANCH}"
 	dir("${verCode}")
@@ -18,7 +19,20 @@ timestamps{
 		try{
 			stage('Fetch Product Repository'){
 				//checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'ScmName', name: '${REPOSITORY_NAME}']], userRemoteConfigs: [[credentialsId: 'e8ff24f6-10d1-4129-8c70-7c66d7c2d6d7', url: 'ssh://git@git.parallelwireless.net:7999/cd/${REPOSITORY_NAME}.git']]])
-				checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/cd/${REPOSITORY_NAME}.git']]])
+				if ("${REPOSITORY_NAME}" == "rt-monitoring")
+				{
+					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/da/${REPOSITORY_NAME}.git']]])
+				}
+				else if ("${REPOSITORY_NAME}" == "bbpms_bsp"){
+					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/bsp/${REPOSITORY_NAME}.git']]])
+
+				}
+				else if("${REPOSITORY_NAME}" == "uniperf"){
+					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/tool/${REPOSITORY_NAME}.git']]])
+				}
+				else{
+					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/cd/${REPOSITORY_NAME}.git']]])
+				}
 			}
 			stage('Build Product'){
 				REPONAME = "${REPOSITORY_NAME}".replaceAll("-","");
@@ -48,16 +62,12 @@ timestamps{
 						projectSourcePath = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}/"
 					}
 					sizeWorkspace = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}".size()
-					def NetworkRepos = ['network', 'nrtric', 'pwconfig', 'pwgui', 'rt-monitoring']
-					def AccessRepos = ['core', '2g-stack', 'osmo2g', 'core-stacks', 'vru-2g-phy', 'vru-3g-phy', 'vru-4g-phy', 'vru-5g-phy', 'nodeh', 'cws-rrh', 'pnf-vnf', 'bbpms_bsp', 'nr-stack']
-					NetworkRepos.each { 
-						if ("${REPOSITORY_NAME}" == it)
-						{
+
 							if ("$sizeWorkspace" > 41246720)
 							{
 								sh """
 									find . -empty -type d -delete
-									/opt/bd_tools/enhanced-splitter.sh "Network" develop-HEAD "${REPOSITORY_NAME}" "${REPOSITORY_NAME}" "$projectSourcePath"
+									/opt/bd_tools/enhanced-splitter.sh "${REPOSITORY_NAME}" develop-HEAD "${REPOSITORY_NAME}" "${REPOSITORY_NAME}" "$projectSourcePath"
 								"""
 							}
 							else
@@ -65,42 +75,22 @@ timestamps{
 								sh """
 									curl -O 'https://detect.synopsys.com/detect.sh'
 									chmod +x detect.sh
-									./detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name=Network --detect.source.path="$projectSourcePath" --detect.code-location.name="${REPOSITORY_NAME}-develop-HEAD" --detect.project.version.name=develop-HEAD --detect.project.version.update=true 
+									./detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name="${REPOSITORY_NAME}" --detect.source.path="$projectSourcePath" --detect.code-location.name="${REPOSITORY_NAME}-develop-HEAD" --detect.project.version.name=develop-HEAD --detect.project.version.update=true --detect.timeout=900
 								"""
 							}
-						}
-					}
-					AccessRepos.each { 
-						if ("${REPOSITORY_NAME}" == it)
-						{
-							if ("$sizeWorkspace" > 41246720)
-							{
-								sh """
-									find . -empty -type d -delete
-									/opt/bd_tools/enhanced-splitter.sh "Access" develop-HEAD "${REPOSITORY_NAME}" "${REPOSITORY_NAME}" "$projectSourcePath"
-								"""
-							}
-							else
-							{
-								sh """
-									curl -O 'https://detect.synopsys.com/detect.sh'
-									chmod +x detect.sh
-									./detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name=Access --detect.source.path="$projectSourcePath" --detect.code-location.name="${REPOSITORY_NAME}-develop-HEAD" --detect.project.version.name=develop-HEAD --detect.project.version.update=true 
-								"""
-							}
-						}
-					}
 				}
 			}
 			stage('Generate the report'){
 				dir("${REPOSITORY_NAME}"){
-				sh """
-					curl -O 'https://detect.synopsys.com/detect.sh'
-					./detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name=${REPOSITORY_NAME} --detect.code-location.name="${REPOSITORY_NAME}-develop-HEAD" --detect.project.version.name=develop-HEAD --detect.risk.report.pdf=true --detect.risk.report.pdf.path=.
-					ls -altr
-					mkdir -p /home/sa.pw-bldmgr/BD-reports/${REPOSITORY_NAME}
-					cp *.pdf /home/sa.pw-bldmgr/BD-reports/${REPOSITORY_NAME}/
-				"""
+							sh """
+								curl -O 'https://detect.synopsys.com/detect.sh'
+								chmod +x detect.sh
+								./detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name="${REPOSITORY_NAME}" --detect.code-location.name="${REPOSITORY_NAME}-develop-HEAD" --detect.project.version.name=develop-HEAD --detect.risk.report.pdf=true --detect.risk.report.pdf.path=.
+								ls -altr
+								mkdir -p /home/sa.pw-bldmgr/BD-reports/${REPOSITORY_NAME}
+								cp *.pdf /home/sa.pw-bldmgr/BD-reports/${REPOSITORY_NAME}/
+							"""
+
 				}
 			}
             currentBuild.result = 'SUCCESS'
@@ -119,13 +109,15 @@ timestamps{
 
 def network()
 {
-	sh '''
-	cd hng/ci_scripts/build/
-	python hng-build.py build-docker
-	python hng-build.py make clean.all
-	python hng-build.py ci_scripts/build/get-3rd-party-pkgs.py
-	python hng-build.py ./buildarchive.sh lacrpm 6
-	'''
+	dir('network'){
+		sh '''
+		cd hng/ci_scripts/build/
+		python hng-build.py build-docker
+		python hng-build.py make clean.all
+		python hng-build.py ci_scripts/build/get-3rd-party-pkgs.py
+		python hng-build.py ./buildarchive.sh lacrpm 6
+		'''
+	}
 }
 def vru4gphy()
 {
@@ -250,7 +242,7 @@ def nodeh()
         def current_dir = pwd()
 
         image = docker.build(
-            "nodeh:${commit_hash_date}",
+            "nodeh:nodeh",
             "--build-arg HOME=${HOME} \
              --build-arg UID=${uid} \
              --build-arg USER=${USER} \
@@ -259,8 +251,15 @@ def nodeh()
              --build-arg PWD=${current_dir} \
              -f docker/Dockerfile.user docker"
         )
-		
-	}
+        image.inside('-v"${HOME}":${HOME}') {
+            // new setup process (cmake)
+            dir("source") {
+                sh 'rm -rf ../build_li32 ../build_li64 ../build_hw ../build_sources ../trace'
+                sh './setup_hw -c 900'
+                sh 'source /opt/intel/system_studio_2019/bin/compilervars.sh intel64; ./setup_hw -t -p8'
+            }		
+        }
+    }
 }
 def cwsrrh(){
 	dir('cws-rrh'){
@@ -278,7 +277,7 @@ def pnfvnf(){
         def current_dir = pwd()
 
         image = docker.build(
-            "pnf-vnf:${commit_hash_date}",
+            "pnf-vnf:pnf-vnf",
             "--build-arg HOME=${HOME} \
              --build-arg UID=${uid} \
              --build-arg USER=${USER} \
@@ -383,7 +382,7 @@ def nrstack(){
                     def current_dir = pwd()
 
                     image = docker.build(
-                        "nr-stacks:${commit_hash_date}",
+                        "nr-stacks:nr-stacks",
                         "--build-arg HOME=${HOME} \
                          --build-arg UID=${uid} \
                          --build-arg USER=${USER} \
@@ -419,16 +418,62 @@ def nrstack(){
 }
 def pwconfig(){
 	dir('pwconfig'){
-	
+
 	}
 }
 def pwgui(){
-	dir('pwgui'){
-	
+	dir('pwgui/deploy'){
+        echo "branch ${PW_BRANCH}"
+        commit_time = sh (script: 'date -d @`git show -s --format=%ct HEAD` +"%Y%m%d.%H%M"',returnStdout: true).trim()
+        short_commit_hash = sh (script: 'git rev-parse --short=8 HEAD',returnStdout: true).trim()
+        echo "commit_hash $commit_time"
+        echo "Calling the Docker Build Script..."
+        sh """
+			sh -xe ci-build.sh ${PW_BRANCH} ${short_commit_hash} ${commit_time}
+        """	
 	}
 }
 def rtmonitoring(){
 	dir('rt-monitoring'){
+	
+	}
+}
+def bbpms_bsp(){
+	dir('bbpms_bsp'){
+        def uid = sh(label: "Read user UID", returnStdout: true, script: "id -u").trim()
+        def gid = sh(label: "Read user GID", returnStdout: true, script: "id -g").trim()
+        def group = sh(label: "Read user group name", returnStdout: true, script: "id -gn").trim()
+        def current_dir = pwd()
+
+		docker_image = docker.build(
+            "bbpms_bsp:${commit_hash_date}",
+            "--build-arg HOME=${HOME} \
+             --build-arg UID=${uid} \
+             --build-arg USER=${USER} \
+             --build-arg GID=${gid} \
+             --build-arg GROUP=${group} \
+             --build-arg PWD=${current_dir} \
+             -f docker/Dockerfile docker"
+        )
+        docker_image.inside('-v"${HOME}":${HOME}') {
+            sh 'pwd'
+            sh 'make clean'
+            sh 'make mag_install'
+        }
+	}
+}
+def ciphapp(){
+	dir('ciph-app'){
+        sh '''
+        echo "Building: ciph-app"
+                  chmod +x ci-build.sh
+                  pwd
+                  ./ci-build.sh
+        '''
+	}
+}
+def uniperf(){
+	dir('uniperf'){
 	
 	}
 }
