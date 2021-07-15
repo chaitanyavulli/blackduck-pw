@@ -30,6 +30,10 @@ timestamps{
 				else if("${REPOSITORY_NAME}" == "uniperf"){
 					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/tool/${REPOSITORY_NAME}.git']]])
 				}
+				else if("${REPOSITORY_NAME}" == "ems")
+				{
+					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/um/${REPOSITORY_NAME}.git']]])
+				}
 				else{
 					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/cd/${REPOSITORY_NAME}.git']]])
 				}
@@ -42,55 +46,65 @@ timestamps{
 				}
 				"$REPONAME"()
 			}
-			stage('Blackduck Analysis'){
-				dir("${REPOSITORY_NAME}"){
-					def projectSourcePath=""
-					if ("${REPOSITORY_NAME}" == "network")
-					{
-						projectSourcePath = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}/hng"
+			def projectSourcePath=""
+			if ("${REPOSITORY_NAME}" == "network")
+			{
+				projectSourcePath = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}/hng"
+			}
+			else if ("${REPOSITORY_NAME}" == "core")
+			{
+				projectSourcePath = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}/vru"
+			}
+			else if ("${REPOSITORY_NAME}" == "core-stacks")
+			{
+				projectSourcePath = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}/ltestack"
+			}
+			else
+			{
+				projectSourcePath = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}/"
+			}
+			sizeWorkspace = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}".size()
+			if ("$sizeWorkspace" > 41246720)
+			{
+				stage('Blackduck Analysis'){
+					dir("${REPOSITORY_NAME}"){
+						sh """
+							find . -empty -type d -delete
+							/opt/bd_tools/enhanced-splitter.sh "${REPOSITORY_NAME}" develop-HEAD "${REPOSITORY_NAME}" "${REPOSITORY_NAME}" "$projectSourcePath"
+						"""
 					}
-					else if ("${REPOSITORY_NAME}" == "core")
-					{
-						projectSourcePath = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}/vru"
-					}
-					else if ("${REPOSITORY_NAME}" == "core-stacks")
-					{
-						projectSourcePath = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}/ltestack"
-					}
-					else
-					{
-						projectSourcePath = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}/"
-					}
-					sizeWorkspace = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}".size()
-
-							if ("$sizeWorkspace" > 41246720)
-							{
-								sh """
-									find . -empty -type d -delete
-									/opt/bd_tools/enhanced-splitter.sh "${REPOSITORY_NAME}" develop-HEAD "${REPOSITORY_NAME}" "${REPOSITORY_NAME}" "$projectSourcePath"
-								"""
-							}
-							else
-							{
-								sh """
-									curl -O 'https://detect.synopsys.com/detect.sh'
-									chmod +x detect.sh
-									./detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name="${REPOSITORY_NAME}" --detect.source.path="$projectSourcePath" --detect.code-location.name="${REPOSITORY_NAME}-develop-HEAD" --detect.project.version.name=develop-HEAD --detect.project.version.update=true --detect.timeout=900
-								"""
-							}
 				}
 			}
-			stage('Generate the report'){
-				dir("${REPOSITORY_NAME}"){
-							sh """
-								curl -O 'https://detect.synopsys.com/detect.sh'
-								chmod +x detect.sh
-								./detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name="${REPOSITORY_NAME}" --detect.code-location.name="${REPOSITORY_NAME}-develop-HEAD" --detect.project.version.name=develop-HEAD --detect.risk.report.pdf=true --detect.risk.report.pdf.path=.
-								ls -altr
-								mkdir -p /home/sa.pw-bldmgr/BD-reports/${REPOSITORY_NAME}
-								cp *.pdf /home/sa.pw-bldmgr/BD-reports/${REPOSITORY_NAME}/
-							"""
+			else
+			{
+				stage('Blackduck Analysis'){
+					dir("${REPOSITORY_NAME}"){
+						sh """
+							curl -O 'https://detect.synopsys.com/detect.sh'
+							chmod +x detect.sh
+							./detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name="${REPOSITORY_NAME}" --detect.source.path="$projectSourcePath" --detect.code-location.name="${REPOSITORY_NAME}-develop-HEAD" --detect.project.version.name=develop-HEAD --detect.project.version.update=true --detect.timeout=900
+						"""
+					}
+				}
+				stage('Generate the report'){
+					dir("${REPOSITORY_NAME}"){
+						sh """
+							curl -O 'https://detect.synopsys.com/detect.sh'
+							chmod +x detect.sh
+							./detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name="${REPOSITORY_NAME}" --detect.code-location.name="${REPOSITORY_NAME}-develop-HEAD" --detect.project.version.name=develop-HEAD --detect.risk.report.pdf=true --detect.risk.report.pdf.path=.
+							ls -altr
+							mkdir -p /home/sa.pw-bldmgr/BD-reports/${REPOSITORY_NAME}
+							cp *.pdf /home/sa.pw-bldmgr/BD-reports/${REPOSITORY_NAME}/
+						"""
+						emailext attachLog: true, attachmentsPattern: '/home/sa.pw-bldmgr/BD-reports/${REPOSITORY_NAME}/*.pdf', body: '''Hi,
 
+						Blackduck analysis for ${REPOSITORY_NAME} completed. Please find attached report.
+
+						Job URL : ${BUILD_URL}
+
+						Thanks
+						''', subject: 'Blackduck analysis report - ${BUILD_DISPLAY_NAME}-${BUILD_NUMBER}', to: 'releng@parallelwireless.com'
+					}
 				}
 			}
             currentBuild.result = 'SUCCESS'
@@ -258,7 +272,7 @@ def nodeh()
                 sh './setup_hw -c 900'
                 sh 'source /opt/intel/system_studio_2019/bin/compilervars.sh intel64; ./setup_hw -t -p8'
             }		
-        }
+	    }
     }
 }
 def cwsrrh(){
@@ -475,5 +489,25 @@ def ciphapp(){
 def uniperf(){
 	dir('uniperf'){
 	
+	}
+}
+def ems(){
+	dir('ems'){
+		sh '''
+			export ELEMENTS_ROOT=$(pwd)
+			export ELEMENTS_BUILD=$ELEMENTS_ROOT/build
+			export JAVA_HOME=/usr/java/jdk1.8.0_102
+			export CL_COMMONS_BUILD=$ELEMENTS_BUILD/centeredlogic-commons
+			export ELEMENTS_RUN=$ELEMENTS_ROOT/run
+			export MODULE_NAME=UniCloud
+			export NETCONFX_BUILD=$ELEMENTS_BUILD/netconfX
+			export ELEMENTS_DIST=$ELEMENTS_ROOT/dist/uni-manage
+			export PRODUCT_NAME=unimanage
+			export ANT_HOME=/opt/apache-ant-1.9.7
+			export PATH=/usr/java/jdk1.8.0_102/bin:${ANT_HOME}/bin:/opt/swtools/bin/git/bin:/opt/cov-analysis-latest/bin:/usr/lib64/qt-3.3/bin:/opt/maven/bin:/opt/swtools/bin/git/bin/:/usr/local/bin:/usr/bin:/opt/swtools/bin/depot_tools/jfrog_CLI/:/usr/sbin:/opt/maven/bin:/opt/swtools/bin/depot_tools/jfrog_CLI/
+			export ELEMENTS_SOURCE=$ELEMENTS_ROOT/3rdPartySource/centeredlogic/elementcenter
+			cd unimanage
+			/opt/apache-ant-1.9.7/bin/ant -file build.xml -DPW_BRANCH=release/REL_4.2.0 -DBUILD_VERSION=4.2.0.4 -DPW_TAG_PREFIX=EMS -DPW_BUILD_EPOCH=1622146231 -Ddebug=true release
+		'''
 	}
 }
