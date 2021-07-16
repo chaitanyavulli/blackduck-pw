@@ -63,8 +63,11 @@ timestamps{
 			{
 				projectSourcePath = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}/"
 			}
-			sizeWorkspace = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}".size()
-			if ("$sizeWorkspace" > 41246720)
+			//sizeWorkspace = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}".size()
+			sizeWorkspace = sh(script:"du -sk \${REPOSITORY_NAME}/ | awk '{print \$1}'", returnStdout: true).toInteger()
+			echo "Workspace Size = ${sizeWorkspace}"
+			
+			if ("${sizeWorkspace}" > 5242880)
 			{
 				stage('Blackduck Analysis'){
 					dir("${REPOSITORY_NAME}"){
@@ -96,22 +99,43 @@ timestamps{
 							mkdir -p /home/sa.pw-bldmgr/BD-reports/${REPOSITORY_NAME}
 							cp *.pdf /home/sa.pw-bldmgr/BD-reports/${REPOSITORY_NAME}/
 						"""
-						emailext attachLog: true, attachmentsPattern: '/home/sa.pw-bldmgr/BD-reports/${REPOSITORY_NAME}/*.pdf', body: '''Hi,
+						sh '''
+						
+text="
+Hi
+						
+Blackduck analysis for ${REPOSITORY_NAME} completed. Please find the attachment to view the result
+						
+Build URL : ${BUILD_URL}
 
-						Blackduck analysis for ${REPOSITORY_NAME} completed. Please find attached report.
-
-						Job URL : ${BUILD_URL}
-
-						Thanks
-						''', subject: 'Blackduck analysis report - ${BUILD_DISPLAY_NAME}-${BUILD_NUMBER}', to: 'releng@parallelwireless.com'
+Thanks
+"
+						echo "$text" > mailBody.txt
+						
+						cat mailBody.txt | mail -a /home/sa.pw-bldmgr/BD-reports/${REPOSITORY_NAME}/*.pdf -s "${BUILD_DISPLAY_NAME} - ${BUILD_NUMBER}" -r 'Build Manager <buildmgr@parallelwireless.com>' releng@parallelwireless.com
+						'''
 					}
 				}
 			}
             currentBuild.result = 'SUCCESS'
         }
         catch (Exception Error) {
-			  throw Error
-              currentBuild.result = 'FAILURE'
+						sh '''
+						
+						text="
+						Hi
+						
+						Blackduck analysis for ${REPOSITORY_NAME} has failed. Please check
+						
+						Build URL : ${BUILD_URL}
+						Thanks
+						"
+						echo "$text" > mailBody.txt
+						
+						cat mailBody.txt | mail -s "${BUILD_DISPLAY_NAME} - ${BUILD_NUMBER} has failed" -r 'Build Manager <buildmgr@parallelwireless.com>' releng@parallelwireless.com
+						'''
+						throw Error
+						currentBuild.result = 'FAILURE'
         }
 		finally{
 			cleanWs()
