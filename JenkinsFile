@@ -67,7 +67,7 @@ timestamps{
 			sizeWorkspace = sh(script:"du -sk \${REPOSITORY_NAME}/ | awk '{print \$1}'", returnStdout: true).toInteger()
 			echo "Workspace Size = ${sizeWorkspace}"
 			
-			if ("${sizeWorkspace}" > 5242880)
+			if ("${sizeWorkspace}".toInteger() > 5242880)
 			{
 				stage('Blackduck Analysis'){
 					dir("${REPOSITORY_NAME}"){
