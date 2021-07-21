@@ -539,7 +539,8 @@ def ems(){
 		'''
 	}
 }
-def nearrtric(){
+
+def near_rtric(){
 	dir('near_rtric/ci-build'){
             echo "branch $branch"
             short_commit_hash = sh (script: 'git rev-parse --short=8 HEAD',returnStdout: true).trim()
@@ -549,4 +550,14 @@ def nearrtric(){
 		    ./ci-build.sh app-all
             """	
 	}
+}
+
+def corestacksphy(){
+	dir('core-stacks-phy/4gPhy/'){
+            sh '''
+            echo "building arm"
+            cd ./core-stacks-phy/4gPhy/
+            ./ci-build.sh
+            '''
+        }    
 }
