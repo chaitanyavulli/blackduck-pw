@@ -556,7 +556,6 @@ def corestacksphy(){
 	dir('core-stacks-phy/4gPhy/'){
             sh '''
             echo "building arm"
-            cd ./core-stacks-phy/4gPhy/
             ./ci-build.sh
             '''
         }    
