@@ -488,7 +488,7 @@ def bbpms_bsp(){
         def current_dir = pwd()
 
 		docker_image = docker.build(
-            "bbpms_bsp:${commit_hash_date}",
+            "bbpms_bsp:bbpms_bsp",
             "--build-arg HOME=${HOME} \
              --build-arg UID=${uid} \
              --build-arg USER=${USER} \
