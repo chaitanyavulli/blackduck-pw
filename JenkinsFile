@@ -34,6 +34,10 @@ timestamps{
 				{
 					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/um/${REPOSITORY_NAME}.git']]])
 				}
+                else if("${REPOSITORY_NAME}" == "near_rtric")
+				{
+					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/near/${REPOSITORY_NAME}.git']]])
+				}
 				else{
 					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/cd/${REPOSITORY_NAME}.git']]])
 				}
@@ -533,5 +537,16 @@ def ems(){
 			cd unimanage
 			/opt/apache-ant-1.9.7/bin/ant -file build.xml -DPW_BRANCH=release/REL_4.2.0 -DBUILD_VERSION=4.2.0.4 -DPW_TAG_PREFIX=EMS -DPW_BUILD_EPOCH=1622146231 -Ddebug=true release
 		'''
+	}
+}
+def nearrtric(){
+	dir('near_rtric/ci-build'){
+            echo "branch $branch"
+            short_commit_hash = sh (script: 'git rev-parse --short=8 HEAD',returnStdout: true).trim()
+            echo "commit_hash $commit_hash"
+            sh """
+            echo "build will happen here. Docker image generation"
+		    ./ci-build.sh app-all
+            """	
 	}
 }
