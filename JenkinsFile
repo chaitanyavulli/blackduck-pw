@@ -116,7 +116,7 @@ Thanks
 "
 						echo "$text" > mailBody.txt
 						
-						cat mailBody.txt | mail -a /home/sa.pw-bldmgr/BD-reports/${REPOSITORY_NAME}/*.pdf -s "${BUILD_DISPLAY_NAME} - ${BUILD_NUMBER}" -r 'Build Manager <buildmgr@parallelwireless.com>' releng@parallelwireless.com
+						cat mailBody.txt | mail -a /home/sa.pw-bldmgr/BD-reports/${REPOSITORY_NAME}/*.pdf -s "${BUILD_DISPLAY_NAME}- BLACKDUCK - ${BUILD_NUMBER}" -r 'Build Manager <buildmgr@parallelwireless.com>' releng@parallelwireless.com
 						'''
 					}
 				}
@@ -126,17 +126,17 @@ Thanks
         catch (Exception Error) {
 						sh '''
 						
-						text="
-						Hi
+text="
+Hi
 						
-						Blackduck analysis for ${REPOSITORY_NAME} has failed. Please check
-						
-						Build URL : ${BUILD_URL}
-						Thanks
-						"
+Blackduck analysis for ${REPOSITORY_NAME} has failed. Please check
+					
+Build URL : ${BUILD_URL}
+Thanks
+"
 						echo "$text" > mailBody.txt
 						
-						cat mailBody.txt | mail -s "${BUILD_DISPLAY_NAME} - ${BUILD_NUMBER} has failed" -r 'Build Manager <buildmgr@parallelwireless.com>' releng@parallelwireless.com
+						cat mailBody.txt | mail -s "${BUILD_DISPLAY_NAME}-BLACKDUCK - ${BUILD_NUMBER} has failed" -r 'Build Manager <buildmgr@parallelwireless.com>' releng@parallelwireless.com
 						'''
 						throw Error
 						currentBuild.result = 'FAILURE'
@@ -165,6 +165,7 @@ def vru4gphy()
 {
 	dir('vru-4g-phy'){
 		sh '''
+			export GIT_COMMIT=$(git rev-parse HEAD)
 			sh -xe ci-build.sh
 		'''
 	}
@@ -173,6 +174,7 @@ def vru3gphy()
 {
 	dir('vru-3g-phy'){
 		sh '''
+			export GIT_COMMIT=$(git rev-parse HEAD)
 			sh -xe ci-build.sh
 		'''
 	}
@@ -181,6 +183,7 @@ def vru2gphy()
 {
 	dir('vru-2g-phy'){
 		sh '''
+			export GIT_COMMIT=$(git rev-parse HEAD)
 			sh -xe ci-build.sh
 		'''
 	}
@@ -189,6 +192,7 @@ def vru5gphy()
 {
 	dir('vru-5g-phy'){
 		sh '''
+			export GIT_COMMIT=$(git rev-parse HEAD)
 			sh -xe ci-build.sh
 		'''
 	}
