@@ -116,7 +116,7 @@ Thanks
 "
 						echo "$text" > mailBody.txt
 						
-						cat mailBody.txt | mail -a /home/sa.pw-bldmgr/BD-reports/${REPOSITORY_NAME}/*.pdf -s "${BUILD_DISPLAY_NAME}- BLACKDUCK - ${BUILD_NUMBER}" -r 'Build Manager <buildmgr@parallelwireless.com>' releng@parallelwireless.com
+						cat mailBody.txt | mail -a /home/sa.pw-bldmgr/BD-reports/${REPOSITORY_NAME}/*.pdf -s "${BUILD_DISPLAY_NAME}- BLACKDUCK - ${BUILD_NUMBER}" -r 'buildmgr@parallelwireless.com' releng@parallelwireless.com
 						'''
 					}
 				}
@@ -136,7 +136,7 @@ Thanks
 "
 						echo "$text" > mailBody.txt
 						
-						cat mailBody.txt | mail -s "${BUILD_DISPLAY_NAME}-BLACKDUCK - ${BUILD_NUMBER} has failed" -r 'Build Manager <buildmgr@parallelwireless.com>' releng@parallelwireless.com
+						cat mailBody.txt | mail -s "${BUILD_DISPLAY_NAME}-BLACKDUCK - ${BUILD_NUMBER} has failed" -r 'buildmgr@parallelwireless.com' releng@parallelwireless.com
 						'''
 						throw Error
 						currentBuild.result = 'FAILURE'
