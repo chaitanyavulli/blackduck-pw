@@ -93,16 +93,11 @@ timestamps{
 						"""
 					}
 				}
-				stage('Generate the report'){
-					dir("${REPOSITORY_NAME}"){
-						sh """
-							curl -O 'https://detect.synopsys.com/detect.sh'
-							chmod +x detect.sh
-							./detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name="${REPOSITORY_NAME}" --detect.code-location.name="${REPOSITORY_NAME}-develop-HEAD" --detect.project.version.name=develop-HEAD --detect.risk.report.pdf=true --detect.risk.report.pdf.path=.
-							ls -altr
-							mkdir -p /home/sa.pw-bldmgr/BD-reports/${REPOSITORY_NAME}
-							cp *.pdf /home/sa.pw-bldmgr/BD-reports/${REPOSITORY_NAME}/
-						"""
+			}
+			stage(''){
+				sh """
+					./blackduckProjectReport.sh ${REPOSITORY_NAME} develop-HEAD
+				"""
 						sh '''
 						
 text="
@@ -116,10 +111,8 @@ Thanks
 "
 						echo "$text" > mailBody.txt
 						
-						cat mailBody.txt | mail -a /home/sa.pw-bldmgr/BD-reports/${REPOSITORY_NAME}/*.pdf -s "${BUILD_DISPLAY_NAME}- BLACKDUCK - ${BUILD_NUMBER}" -r 'Build Manager <buildmgr@parallelwireless.com>' releng@parallelwireless.com
+						cat mailBody.txt | mail -s "${BUILD_DISPLAY_NAME}- BLACKDUCK - ${BUILD_NUMBER}" -r 'buildmgr@parallelwireless.com' releng@parallelwireless.com
 						'''
-					}
-				}
 			}
             currentBuild.result = 'SUCCESS'
         }
