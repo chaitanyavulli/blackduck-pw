@@ -94,10 +94,12 @@ timestamps{
 					}
 				}
 			}
-			stage(''){
+			stage('Generating Report'){
+                                dir("${REPOSITORY_NAME}"){
 				sh """
 					./blackduckProjectReport.sh ${REPOSITORY_NAME} develop-HEAD
 				"""
+                                }
 						sh '''
 						
 text="
