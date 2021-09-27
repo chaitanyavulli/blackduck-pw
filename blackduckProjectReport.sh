@@ -10,7 +10,7 @@ else
 
 curl -v --location --request POST 'https://parallelwireless.app.blackduck.com/api/tokens/authenticate' --header 'Authorization: token OGUwYTBjOTYtY2E0MC00YmJhLTkwMTEtMDMxY2QwMDA3ZDQ2OmU2M2E1MzA2LTM3MDMtNGJhZi1hOTk5LTc1ZTViMjZjMDNmZg==' > out.txt 2>&1
 
-crpfToken=$(cat out.txt | grep "x-csrf-token" | cut -d ":" -f2 | sed 's/[ ]//g')
+crpfToken=$(cat out.txt | grep "X-CSRF-TOKEN:" | cut -d ":" -f2 | sed 's/[ ]//g')
 bearerToken=$(cat out.txt | grep "bearerToken" | cut -d ":" -f2 | cut -d "," -f1 | sed 's/["]//g')
 
 if [ "$crpfToken" == "" ]
@@ -63,19 +63,20 @@ then
         exit 1
 fi
 
-curl --http1.1 --location --request POST "https://parallelwireless.app.blackduck.com/api/versions/$versionID/reports" \
+curl  --location --request POST "https://parallelwireless.app.blackduck.com/api/versions/$versionID/reports" \
 --header "X-CSRF-TOKEN: ${crpfToken}" \
 --header 'Content-Type: application/vnd.blackducksoftware.report-4+json' \
 --header "Authorization: bearer ${bearerToken}" \
---data-raw '{ "reportFormat" : "CSV", "locale" : "en_US", "versionId" : "'"$versionID"'", "categories" : ["COMPONENTS"], "reportType" : "[VERSION_LICENSE, VERSION, VERSION_VULNERABILITY_REMEDIATION, VERSION_VULNERABILITY_STATUS, VERSION_VULNERABILITY_UPDATE]" }'
+--data '{ "reportFormat" : "CSV", "locale" : "en_US", "versionId" : "'"$versionID"'", "categories" : ["COMPONENTS"], "reportType" : "[VERSION_LICENSE, VERSION, VERSION_VULNERABILITY_REMEDIATION, VERSION_VULNERABILITY_STATUS, VERSION_VULNERABILITY_UPDATE]" }'
 
 
 downloadUrl=$(curl -k -X GET "https://parallelwireless.app.blackduck.com/api/versions/$versionID/reports?limit=1" \
 --header "Authorization: bearer ${bearerToken}" --header "Accept: application/vnd.blackducksoftware.report-4+json" | jq '.items | .[] | ._meta.links | .[] | .href' | tail -1 | sed 's/["]//g')
 
-#echo "$downloadUrl"
-echo "Generating CSV report for $projectName - $releaseName"
-sleep 300
+echo "$downloadUrl"
+echo "Generating CSV report for $projectName - $versionName"
+sleep 200
+
 curl -k -X GET "$downloadUrl" --header "Authorization: bearer ${bearerToken}" --header "Accept: application/vnd.blackducksoftware.report-4+json" --output $projectName.$versionName.zip
 
 COMMITID=$(git rev-parse HEAD)
@@ -84,9 +85,9 @@ REPORTDATE=$(date '+%Y%m%d%H%M')
 if [ -f "$projectName.$versionName.zip" ]; then
     unzip $projectName.$versionName.zip
     rm -rf $projectName.$versionName.zip
-    mv $projectName*/ "${REPOSITORY_NAME}-{PW_BRANCH}-$COMMITID-$REPORTDATE"/
-    mv "${REPOSITORY_NAME}-{PW_BRANCH}-$COMMITID-$REPORTDATE"/ /work/sa.pw-bldmgr/blackduck_csv_reports/
-    mv /work/sa.pw-bldmgr/blackduck_csv_reports/"${REPOSITORY_NAME}-{PW_BRANCH}-$COMMITID-$REPORTDATE"/*.csv /work/sa.pw-bldmgr/blackduck_csv_reports/"${REPOSITORY_NAME}-{PW_BRANCH}-$COMMITID-$REPORTDATE"/"${REPOSITORY_NAME}-${PW_BRANCH}".csv 
+    mv $projectName*/ "${REPOSITORY_NAME}-${PW_BRANCH}-$COMMITID-$REPORTDATE"/
+    mv "${REPOSITORY_NAME}-${PW_BRANCH}-$COMMITID-$REPORTDATE"/ /work/sa.pw-bldmgr/blackduck_csv_reports/
+    mv /work/sa.pw-bldmgr/blackduck_csv_reports/"${REPOSITORY_NAME}-${PW_BRANCH}-$COMMITID-$REPORTDATE"/*.csv /work/sa.pw-bldmgr/blackduck_csv_reports/"${REPOSITORY_NAME}-${PW_BRANCH}-$COMMITID-$REPORTDATE"/"${REPOSITORY_NAME}-${PW_BRANCH}".csv 
 else
    echo "please check the rest api urls properly"   
 fi

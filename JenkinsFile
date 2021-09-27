@@ -97,7 +97,7 @@ timestamps{
 			stage('Generating Report'){
                                 dir("${REPOSITORY_NAME}"){
 				sh """
-					sh /work/sa.pw-bldmgr/blackduck_csv_reports/blackduck/blackduckProjectReport.sh ${REPOSITORY_NAME} develop-HEAD
+					sh /work/sa.pw-bldmgr/blackduck_csv_reports/blackduckProjectReport.sh ${REPOSITORY_NAME} develop-HEAD
 				"""
                                 }
 						sh '''
@@ -131,7 +131,7 @@ Thanks
 "
 						echo "$text" > mailBody.txt
 						
-						cat mailBody.txt | mail -s "${BUILD_DISPLAY_NAME}-BLACKDUCK - ${BUILD_NUMBER} has failed" -r 'Build Manager <buildmgr@parallelwireless.com>' releng@parallelwireless.com
+						cat mailBody.txt | mail -s "${BUILD_DISPLAY_NAME}-BLACKDUCK - ${BUILD_NUMBER} has failed" -r 'buildmgr@parallelwireless.com' releng@parallelwireless.com
 						'''
 						throw Error
 						currentBuild.result = 'FAILURE'
