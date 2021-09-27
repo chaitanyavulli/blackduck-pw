@@ -97,7 +97,7 @@ timestamps{
 			stage('Generating Report'){
                                 dir("${REPOSITORY_NAME}"){
 				sh """
-					./blackduckProjectReport.sh ${REPOSITORY_NAME} develop-HEAD
+					sh /work/sa.pw-bldmgr/blackduck_csv_reports/blackduck/blackduckProjectReport.sh ${REPOSITORY_NAME} develop-HEAD
 				"""
                                 }
 						sh '''
