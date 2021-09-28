@@ -73,6 +73,7 @@ timestamps{
 			
 			if ("${sizeWorkspace}".toInteger() > 5242880)
 			{
+			catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
 				stage('Blackduck Analysis'){
 					dir("${REPOSITORY_NAME}"){
 						sh """
@@ -82,8 +83,10 @@ timestamps{
 					}
 				}
 			}
+			}
 			else
 			{
+				catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
 				stage('Blackduck Analysis'){
 					dir("${REPOSITORY_NAME}"){
 						sh """
@@ -92,6 +95,7 @@ timestamps{
 							./detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name="${REPOSITORY_NAME}" --detect.source.path="$projectSourcePath" --detect.code-location.name="${REPOSITORY_NAME}-develop-HEAD" --detect.project.version.name=develop-HEAD --detect.project.version.update=true --detect.timeout=900
 						"""
 					}
+				}
 				}
 			}
 			stage('Generating Report'){
