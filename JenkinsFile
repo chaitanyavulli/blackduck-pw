@@ -141,6 +141,7 @@ Thanks
 						currentBuild.result = 'FAILURE'
         }
 		finally{
+			logParser failBuildOnError: true, parsingRulesPath: '/stage/releng/ErrorLogCheck', useProjectRule: false
 			cleanWs()
 		}
 	}
