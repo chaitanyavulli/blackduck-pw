@@ -73,7 +73,6 @@ timestamps{
 			
 			if ("${sizeWorkspace}".toInteger() > 5242880)
 			{
-			catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
 				stage('Blackduck Analysis'){
 					dir("${REPOSITORY_NAME}"){
 						sh """
@@ -83,10 +82,8 @@ timestamps{
 					}
 				}
 			}
-			}
 			else
 			{
-				catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
 				stage('Blackduck Analysis'){
 					dir("${REPOSITORY_NAME}"){
 						sh """
@@ -96,9 +93,9 @@ timestamps{
 						"""
 					}
 				}
-				}
 			}
 			stage('Generating Report'){
+			logParser failBuildOnError: true, parsingRulesPath: '/stage/releng/ErrorLogCheck', useProjectRule: false
             dir("${REPOSITORY_NAME}"){
 				if ("${REPOSITORY_NAME}" == "network")
 				{
@@ -145,7 +142,6 @@ Thanks
 						currentBuild.result = 'FAILURE'
         }
 		finally{
-			logParser failBuildOnError: true, parsingRulesPath: '/stage/releng/ErrorLogCheck', useProjectRule: false
 			cleanWs()
 		}
 	}
