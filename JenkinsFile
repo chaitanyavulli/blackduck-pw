@@ -94,6 +94,7 @@ timestamps{
 					}
 				}
 			}
+			error_check()
 			stage('Generating Report'){
 			logParser failBuildOnError: true, parsingRulesPath: '/stage/releng/ErrorLogCheck', useProjectRule: false
             dir("${REPOSITORY_NAME}"){
@@ -148,6 +149,20 @@ Thanks
 }//end of timestamps
 }//end of node
 
+def error_check()
+{
+	script {
+		def logz = currentBuild.rawBuild.getLog(10000000);
+		def errorKeyword1 = logz.find { it.contains('FAILURE_SCAN') }
+		def errorKeyword2 = logz.find { it.contains('FAILURE_TIMEOUT') }
+		if (errorKeyword1){
+			error("Build failed due to $errorKeyword1")
+		}
+		if (errorKeyword2) {
+			error("Build failed due to $errorKeyword2")
+		}
+	}
+}
 
 def network()
 {
