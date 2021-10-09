@@ -73,7 +73,6 @@ timestamps{
 			
 			if ("${sizeWorkspace}".toInteger() > 5242880)
 			{
-			catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
 				stage('Blackduck Analysis'){
 					dir("${REPOSITORY_NAME}"){
 						sh """
@@ -83,10 +82,8 @@ timestamps{
 					}
 				}
 			}
-			}
 			else
 			{
-				catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
 				stage('Blackduck Analysis'){
 					dir("${REPOSITORY_NAME}"){
 						sh """
@@ -96,8 +93,8 @@ timestamps{
 						"""
 					}
 				}
-				}
 			}
+			error_check()
 			stage('Generating Report'){
             dir("${REPOSITORY_NAME}"){
 				if ("${REPOSITORY_NAME}" == "network")
@@ -145,13 +142,26 @@ Thanks
 						currentBuild.result = 'FAILURE'
         }
 		finally{
-			logParser failBuildOnError: true, parsingRulesPath: '/stage/releng/ErrorLogCheck', useProjectRule: false
 			cleanWs()
 		}
 	}
 }//end of timestamps
 }//end of node
 
+def error_check()
+{
+	script {
+		def logz = currentBuild.rawBuild.getLog(10000000);
+		def errorKeyword1 = logz.find { it.contains('FAILURE_SCAN') }
+		def errorKeyword2 = logz.find { it.contains('FAILURE_TIMEOUT') }
+		if (errorKeyword1){
+			error("Build failed due to $errorKeyword1")
+		}
+		if (errorKeyword2) {
+			error("Build failed due to $errorKeyword2")
+		}
+	}
+}
 
 def network()
 {
