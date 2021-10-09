@@ -96,7 +96,6 @@ timestamps{
 			}
 			error_check()
 			stage('Generating Report'){
-			logParser failBuildOnError: true, parsingRulesPath: '/stage/releng/ErrorLogCheck', useProjectRule: false
             dir("${REPOSITORY_NAME}"){
 				if ("${REPOSITORY_NAME}" == "network")
 				{
