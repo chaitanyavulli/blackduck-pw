@@ -11,6 +11,7 @@ timestamps{
 	])
 	def BDToken="MTdiOWNkYTQtZDA2Yy00YzBhLTk0MzctMDMxMzU4MGQ0YWY1OjU3ODZjOGM4LTVkMDYtNDA0ZS1iNWNhLTVlMDYzZTg4ZTVhNw=="
 	def verCode = UUID.randomUUID().toString()
+	def COMMITID
 	
 	currentBuild.displayName = "#${BUILD_NUMBER}, ${REPOSITORY_NAME}"
 	currentBuild.description = "#${BUILD_NUMBER}, ${PW_BRANCH}"
@@ -75,8 +76,10 @@ timestamps{
 			{
 				stage('Blackduck Analysis'){
 					dir("${REPOSITORY_NAME}"){
+						COMMITID = sh(script:"git rev-parse HEAD", returnStdout: true)
 						sh """
 							find . -empty -type d -delete
+							rm -rf .git/
 							/opt/bd_tools/enhanced-splitter.sh "${REPOSITORY_NAME}" develop-HEAD "${REPOSITORY_NAME}" "${REPOSITORY_NAME}" "$projectSourcePath"
 						"""
 					}
@@ -86,7 +89,9 @@ timestamps{
 			{
 				stage('Blackduck Analysis'){
 					dir("${REPOSITORY_NAME}"){
+						COMMITID = sh(script:"git rev-parse HEAD", returnStdout: true)
 						sh """
+							rm -rf .git/
 							curl -O 'https://detect.synopsys.com/detect.sh'
 							chmod +x detect.sh
 							./detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name="${REPOSITORY_NAME}" --detect.source.path="$projectSourcePath" --detect.code-location.name="${REPOSITORY_NAME}-develop-HEAD" --detect.project.version.name=develop-HEAD --detect.project.version.update=true --detect.timeout=900
