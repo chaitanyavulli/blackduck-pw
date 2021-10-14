@@ -107,7 +107,7 @@ timestamps{
 					REPOSITORY_NAME = "NETWORK"
 				}
 				sh """
-					sh /work/sa.pw-bldmgr/blackduck_csv_reports/blackduckProjectReport.sh ${REPOSITORY_NAME} develop-HEAD
+					sh /work/sa.pw-bldmgr/blackduck_csv_reports/blackduckProjectReport.sh ${REPOSITORY_NAME} develop-HEAD ${COMMITID}
 				"""
             }
 						sh '''
