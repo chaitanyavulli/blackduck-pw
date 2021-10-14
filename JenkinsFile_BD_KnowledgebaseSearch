@@ -1,0 +1,59 @@
+#!/user/bin/env groovy
+import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
+node('blackduck-scan')
+{
+timestamps{
+	properties([
+		parameters([
+			string(defaultValue: '', description: 'Defining parameter for DevOps Ticket', name: 'DEVOPS_TICKET', trim: false),
+		])
+	])
+	withCredentials([usernamePassword(credentialsId: 'd29d1f67-9bd5-4c30-91d6-6d4338aea770', passwordVariable: 'PWPASSWORD', usernameVariable: 'PWUSER')]) {
+	def verCode = UUID.randomUUID().toString()
+	sh '''
+	set +x
+		curl -u ${PWUSER}:${PWPASSWORD} -H "Content-Type: application/json" -X GET https://jira.parallelwireless.net/rest/api/2/issue/${DEVOPS_TICKET} -o /tmp/jira.txt
+	'''
+	def PACKAGE_NAME = sh(script:"cat /tmp/jira.txt | jq '.[]' | grep 'customfield_14701' | cut -d ':' -f2,3,4 | sed 's/[ \",]//g' ", returnStdout: true).trim()
+	def VERSION_NUMBER = sh(script:"cat /tmp/jira.txt | jq '.[]' | grep 'customfield_14702' | cut -d ':' -f2,3,4 | sed 's/[ \",]//g' ", returnStdout: true).trim()
+	echo "PACKAGE NAME: ${PACKAGE_NAME}"
+	echo "PACKAGE VERSION: ${VERSION_NUMBER}"
+	currentBuild.displayName = "${PACKAGE_NAME}:${VERSION_NUMBER}"
+	currentBuild.description = "${BUILD_NUMBER}:${DEVOPS_TICKET}"
+	dir("${verCode}")
+	{
+		try{
+			stage('Knowledge Base Search'){
+				echo "Searching Blackduck knowledge base for ${PACKAGE_NAME}"
+				
+				sh """
+					export PYTHONIOENCODING=utf8
+					python3 /work/sa.pw-bldmgr/knowledgeBaseSearch.py "${PACKAGE_NAME}" "${VERSION_NUMBER}"
+				"""
+					if (fileExists('vulnerabilities.txt')) {
+						def attachment = jiraUploadAttachment idOrKey: "${DEVOPS_TICKET}", file: "vulnerabilities.txt", site: 'JIRA'
+						attachment.data.toString()
+					} else {
+						echo "There are 0 vulnerabilities for ${PACKAGE_NAME}"
+					}
+				def licenseattachment = jiraUploadAttachment idOrKey: "${DEVOPS_TICKET}", file: "licensedetails.txt", site: 'JIRA'
+				licenseattachment.data.toString()
+				jiraAssignIssue idOrKey: "${DEVOPS_TICKET}", userName: "msaji", site: 'JIRA'
+				sh '''
+					curl -u ${PWUSER}:${PWPASSWORD} -X POST --data '{"transition":{"id":"51"}}' -H "Content-Type: application/json" https://jira.parallelwireless.net/rest/api/2/issue/DEVOPS-9317/transitions
+				'''
+			}
+			currentBuild.displayName = "#${BUILD_NUMBER}, ${DEVOPS_TICKET}"
+            currentBuild.result = 'SUCCESS'
+        }
+        catch (Exception Error) {
+						throw Error
+						currentBuild.result = 'FAILURE'
+        }
+		finally{
+			cleanWs()
+		}
+	}
+	}//withCredentialsblock
+}//end of timestamps
+}//end of node
