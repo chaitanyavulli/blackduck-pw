@@ -1,0 +1,117 @@
+import requests
+import json
+import sys
+import os
+import time
+import zipfile
+
+
+url = "https://parallelwireless.app.blackduck.com/api/tokens/authenticate"
+
+headers = {
+  'Authorization': 'token OGUwYTBjOTYtY2E0MC00YmJhLTkwMTEtMDMxY2QwMDA3ZDQ2OmU2M2E1MzA2LTM3MDMtNGJhZi1hOTk5LTc1ZTViMjZjMDNmZg=='
+}
+
+response = requests.request("POST", url, headers=headers)
+
+bearertoken = response.json()['bearerToken']
+#print(bearertoken)
+
+xcsrftoken = response.headers['X-CSRF-TOKEN']
+#print(xcsrftoken)
+
+
+projectName=sys.argv[1]
+versionName=sys.argv[2]
+commitID=sys.argv[3]
+if projectName == "":
+	exit("Please specify the package name")
+
+
+
+projectURLs = "https://parallelwireless.app.blackduck.com/api/projects?limit=100"
+
+projectheaders = {
+  'X-CSRF-TOKEN': xcsrftoken,
+  'Content-Type': 'application/vnd.blackducksoftware.component-detail-4+json',
+  'Authorization': 'Bearer '+bearertoken
+}
+
+
+projectresponse = requests.request("GET", projectURLs, headers=projectheaders)
+
+projectdata = projectresponse.json()
+ReportURL = ""
+
+for each in projectdata['items']:
+	if each['name'] == projectName:
+		print(each['_meta']['links'][0]['href'])
+		versionsresponse = requests.request("GET", each['_meta']['links'][0]['href'], headers=projectheaders)
+		versionsdata = versionsresponse.json()
+		for eachversion in versionsdata['items']:
+			
+			if eachversion['versionName'] == versionName:
+				ReportURL = eachversion['_meta']['links'][8]['href']
+				with open('securityRiskProfile.json', 'w') as f:
+    					json.dump(eachversion['securityRiskProfile'], f)
+				with open('licenseRiskProfile.json', 'w') as f:
+                                       json.dump(eachversion['licenseRiskProfile'], f)
+				with open('operationalRiskProfile.json', 'w') as f:
+                                        json.dump(eachversion['operationalRiskProfile'], f)
+
+#print(ReportURL)
+versionid = ReportURL.split('/')[7]
+ReportURL = "https://parallelwireless.app.blackduck.com/api/versions/"+versionid+"/reports"
+#print(ReportURL)
+reportheaders = {
+	'X-CSRF-TOKEN': xcsrftoken,
+	'Content-Type': 'application/vnd.blackducksoftware.report-4+json',
+	'Authorization': 'Bearer '+bearertoken
+}
+reportdata = "{ \"reportFormat\" : \"CSV\", \"locale\" : \"en_US\", \"versionId\" : \""+versionid+"\", \"categories\": [\"COMPONENTS\"], \"reportType\" : \"[VERSION_LICENSE, VERSION, VERSION_VULNERABILITY_REMEDIATION, VERSION_VULNERABILITY_STATUS, VERSION_VULNERABILITY_UPDATE]\" }\r\n"
+
+
+reportresponse = requests.request("POST", ReportURL, headers=reportheaders, data=reportdata)
+
+time.sleep(400)
+
+reportlistreponse = requests.request("GET", ReportURL+"?limit=1", headers=reportheaders)
+
+reportlistdata = reportlistreponse.json()
+
+#print(reportlistdata)
+csvtimestamp=""
+for reporteachlist in reportlistdata['items']:
+	downloadURL=reporteachlist['_meta']['links'][1]['href']
+	#cmd = "curl -k -X GET "+downloadURL+" --header \"Authorization: bearer "+xcsrftoken+"\" --header \"Accept: application/vnd.blackducksoftware.report-4+json\" --output "+projectName+"_"+versionName+".zip"
+	#print(cmd)
+	#os.system(cmd)
+	r = requests.request("GET", downloadURL, headers=reportheaders)
+	with open(projectName+"_"+versionName+".zip", "wb") as code:
+		code.write(r.content)
+	with zipfile.ZipFile(projectName+"_"+versionName+".zip", 'r') as zip_ref:
+		filename = zip_ref.extractall()
+	cmd = "mv "+projectName+"-"+versionName+"* "+projectName
+	os.system(cmd)
+	csvfilename = os.listdir(projectName)[0].split(".")[0].split("_")
+	csvtimestamp = csvfilename[1]+"_"+csvfilename[2]
+	if os.path.isdir("/work/sa.pw-bldmgr/blackduck_csv_reports/develop/"+projectName):
+		csvcmd = "mv "+projectName+"/*.csv /work/sa.pw-bldmgr/blackduck_csv_reports/develop/"+projectName+"/"+projectName+"-"+versionName.split("-")[0]+"-"+commitID+"-"+csvtimestamp+".csv"
+		os.system(csvcmd)
+	else:
+		#print("Project directory Doesn't exists. Creating new one")
+		os.mkdir("/work/sa.pw-bldmgr/blackduck_csv_reports/develop/"+projectName)
+		csvcmd = "mv "+projectName+"/*.csv /work/sa.pw-bldmgr/blackduck_csv_reports/develop/"+projectName+"/"+projectName+"-"+versionName.split("-")[0]+"-"+commitID+"-"+csvtimestamp+".csv"
+		os.system(csvcmd)
+
+jsoncmd1 = "mv securityRiskProfile.json securityRiskProfile_"+csvtimestamp+".json"
+jsoncmd2 = "mv licenseRiskProfile.json licenseRiskProfile_"+csvtimestamp+".json"
+jsoncmd3 = "mv operationalRiskProfile.json operationalRiskProfile_"+csvtimestamp+".json"
+jsoncmd4 = "mv *.json /work/sa.pw-bldmgr/blackduck_csv_reports/develop/"+projectName+"/"
+removeExtrafiles = "rm -rf *.zip "+projectName+"/"
+os.system(jsoncmd1)
+os.system(jsoncmd2)
+os.system(jsoncmd3)
+os.system(jsoncmd4)
+scpcmd = "scp -r /work/sa.pw-bldmgr/blackduck_csv_reports/develop/"+projectName+"/*"+csvtimestamp+"*  parallel@10.136.2.223:/blackduckreports/develop/"+projectName+"/"
+os.system(scpcmd)
