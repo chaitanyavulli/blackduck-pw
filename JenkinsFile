@@ -76,7 +76,7 @@ timestamps{
 			{
 				stage('Blackduck Analysis'){
 					dir("${REPOSITORY_NAME}"){
-						COMMITID = sh(script:"git rev-parse HEAD", returnStdout: true)
+						COMMITID = sh(script:"git rev-parse HEAD", returnStdout: true).trim()
 						sh """
 							find . -empty -type d -delete
 							rm -rf .git/
@@ -89,7 +89,7 @@ timestamps{
 			{
 				stage('Blackduck Analysis'){
 					dir("${REPOSITORY_NAME}"){
-						COMMITID = sh(script:"git rev-parse HEAD", returnStdout: true)
+						COMMITID = sh(script:"git rev-parse HEAD", returnStdout: true).trim()
 						sh """
 							rm -rf .git/
 							curl -O 'https://detect.synopsys.com/detect.sh'
@@ -101,16 +101,16 @@ timestamps{
 			}
 			error_check()
 			stage('Generating Report'){
-            dir("${REPOSITORY_NAME}"){
-				if ("${REPOSITORY_NAME}" == "network")
-				{
-					REPOSITORY_NAME = "NETWORK"
-				}
-				sh """
-					sh /work/sa.pw-bldmgr/blackduck_csv_reports/blackduckProjectReport.sh ${REPOSITORY_NAME} develop-HEAD ${COMMITID}
-				"""
-            }
-						sh '''
+				dir("${REPOSITORY_NAME}"){
+					if ("${REPOSITORY_NAME}" == "network")
+					{
+						REPOSITORY_NAME = "NETWORK"
+					}
+					sh """
+						python3 /work/sa.pw-bldmgr/blackduck_csv_reports/projectReport.py "${REPOSITORY_NAME}" "develop-HEAD" "${COMMITID}"
+					"""
+                }
+				sh '''
 						
 text="
 Hi
@@ -124,12 +124,12 @@ Thanks
 						echo "$text" > mailBody.txt
 						
 						cat mailBody.txt | mail -s "${BUILD_DISPLAY_NAME}- BLACKDUCK - ${BUILD_NUMBER}" -r 'buildmgr@parallelwireless.com' releng@parallelwireless.com
-						'''
+				'''
 			}
             currentBuild.result = 'SUCCESS'
-        }
+        } //closing try statement
         catch (Exception Error) {
-						sh '''
+			sh '''
 						
 text="
 Hi
@@ -142,14 +142,14 @@ Thanks
 						echo "$text" > mailBody.txt
 						
 						cat mailBody.txt | mail -s "${BUILD_DISPLAY_NAME}-BLACKDUCK - ${BUILD_NUMBER} has failed" -r 'buildmgr@parallelwireless.com' releng@parallelwireless.com
-						'''
-						throw Error
-						currentBuild.result = 'FAILURE'
-        }
+			'''
+			throw Error
+			currentBuild.result = 'FAILURE'
+        }//closing catch statement
 		finally{
 			cleanWs()
 		}
-	}
+	}//closing dir varcode block
 }//end of timestamps
 }//end of node
 
