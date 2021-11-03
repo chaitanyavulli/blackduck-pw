@@ -159,7 +159,7 @@ def error_check()
 		def logz = currentBuild.rawBuild.getLog(10000000);
 		def errorKeyword1 = logz.find { it.contains('FAILURE_SCAN') }
 		def errorKeyword2 = logz.find { it.contains('FAILURE_TIMEOUT') }
-		def errorKeyword3 = logz.find { it.contains('FAILURE_') }
+		def errorKeyword3 = logz.find { it.contains('FAILURE_BLACKDUCK_CONNECTIVITY') }
 		if (errorKeyword1){
 			error("Build failed due to $errorKeyword1")
 		}
