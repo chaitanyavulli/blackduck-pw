@@ -159,11 +159,15 @@ def error_check()
 		def logz = currentBuild.rawBuild.getLog(10000000);
 		def errorKeyword1 = logz.find { it.contains('FAILURE_SCAN') }
 		def errorKeyword2 = logz.find { it.contains('FAILURE_TIMEOUT') }
+		def errorKeyword3 = logz.find { it.contains('FAILURE_') }
 		if (errorKeyword1){
 			error("Build failed due to $errorKeyword1")
 		}
 		if (errorKeyword2) {
 			error("Build failed due to $errorKeyword2")
+		}
+        if (errorKeyword3) {
+			error("Build failed due to $errorKeyword3")
 		}
 	}
 }
