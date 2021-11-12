@@ -91,9 +91,9 @@ timestamps{
 					dir("${REPOSITORY_NAME}"){
 						COMMITID = sh(script:"git rev-parse HEAD", returnStdout: true).trim()
 						sh """
-							curl -O 'https://detect.synopsys.com/detect.sh'
-							chmod +x detect.sh
-							./detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name="${REPOSITORY_NAME}" --detect.source.path="$projectSourcePath" --detect.code-location.name="${REPOSITORY_NAME}-develop-HEAD" --detect.project.version.name=develop-HEAD --detect.project.version.update=true --detect.timeout=900
+							curl -O 'https://detect.synopsys.com/detect7.sh'
+							chmod +x detect7.sh
+							./detect7.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name="${REPOSITORY_NAME}" --detect.source.path="$projectSourcePath" --detect.code-location.name="${REPOSITORY_NAME}-develop-HEAD" --detect.project.version.name=develop-HEAD --detect.project.version.update=true --detect.timeout=3000 --detect.conan.path=/usr/local/bin/conan --detect.excluded.detector.types=CPAN --detect.nuget.inspector.air.gap.path=/opt/packaged-inspectors/nuget/ --detect.gradle.inspector.air.gap.path=/opt/packaged-inspector/gradle/ --detect.dotnet.path=/usr/local/bin/dotnet
 						"""
 					}
 				}
