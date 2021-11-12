@@ -79,7 +79,6 @@ timestamps{
 						COMMITID = sh(script:"git rev-parse HEAD", returnStdout: true).trim()
 						sh """
 							find . -empty -type d -delete
-							rm -rf .git/
 							export bd_token="${BDToken}"
 							/opt/bd_tools/enhanced-splitter.sh "${REPOSITORY_NAME}" develop-HEAD "${REPOSITORY_NAME}" "${REPOSITORY_NAME}" "$projectSourcePath"
 						"""
@@ -92,7 +91,6 @@ timestamps{
 					dir("${REPOSITORY_NAME}"){
 						COMMITID = sh(script:"git rev-parse HEAD", returnStdout: true).trim()
 						sh """
-							rm -rf .git/
 							curl -O 'https://detect.synopsys.com/detect.sh'
 							chmod +x detect.sh
 							./detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name="${REPOSITORY_NAME}" --detect.source.path="$projectSourcePath" --detect.code-location.name="${REPOSITORY_NAME}-develop-HEAD" --detect.project.version.name=develop-HEAD --detect.project.version.update=true --detect.timeout=900
@@ -103,10 +101,6 @@ timestamps{
 			error_check()
 			stage('Generating Report'){
 				dir("${REPOSITORY_NAME}"){
-					if ("${REPOSITORY_NAME}" == "network")
-					{
-						REPOSITORY_NAME = "NETWORK"
-					}
 					sh """
 						python3 /work/sa.pw-bldmgr/blackduck_csv_reports/projectReport.py "${REPOSITORY_NAME}" "develop-HEAD" "${COMMITID}"
 					"""
@@ -160,15 +154,11 @@ def error_check()
 		def logz = currentBuild.rawBuild.getLog(10000000);
 		def errorKeyword1 = logz.find { it.contains('FAILURE_SCAN') }
 		def errorKeyword2 = logz.find { it.contains('FAILURE_TIMEOUT') }
-		def errorKeyword3 = logz.find { it.contains('FAILURE_BLACKDUCK_CONNECTIVITY') }
 		if (errorKeyword1){
 			error("Build failed due to $errorKeyword1")
 		}
 		if (errorKeyword2) {
 			error("Build failed due to $errorKeyword2")
-		}
-        if (errorKeyword3) {
-			error("Build failed due to $errorKeyword3")
 		}
 	}
 }

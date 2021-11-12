@@ -73,7 +73,7 @@ reportdata = "{ \"reportFormat\" : \"CSV\", \"locale\" : \"en_US\", \"versionId\
 
 reportresponse = requests.request("POST", ReportURL, headers=reportheaders, data=reportdata)
 
-time.sleep(400)
+time.sleep(120)
 
 reportlistreponse = requests.request("GET", ReportURL+"?limit=1", headers=reportheaders)
 
@@ -82,10 +82,17 @@ reportlistdata = reportlistreponse.json()
 #print(reportlistdata)
 csvtimestamp=""
 for reporteachlist in reportlistdata['items']:
+	reportStatus = reporteachlist['status']
+	counter = 0
+	while reportStatus == "IN_PROGRESS":
+		time.sleep(60)
+		counter = counter+1
+		reportlistreponse = requests.request("GET", ReportURL+"?limit=1", headers=reportheaders)
+		reportlistdataforloop = reportlistreponse.json()
+		reportStatus = reportlistdataforloop['items'][0]['status']
+		if counter == 10:
+			raise ValueError('Report Generation taking long time. Please check on blackduck site : https://parallelwireless.app.blackduck.com/')
 	downloadURL=reporteachlist['_meta']['links'][1]['href']
-	#cmd = "curl -k -X GET "+downloadURL+" --header \"Authorization: bearer "+xcsrftoken+"\" --header \"Accept: application/vnd.blackducksoftware.report-4+json\" --output "+projectName+"_"+versionName+".zip"
-	#print(cmd)
-	#os.system(cmd)
 	r = requests.request("GET", downloadURL, headers=reportheaders)
 	with open(projectName+"_"+versionName+".zip", "wb") as code:
 		code.write(r.content)
@@ -99,19 +106,15 @@ for reporteachlist in reportlistdata['items']:
 		csvcmd = "mv "+projectName+"/*.csv /work/sa.pw-bldmgr/blackduck_csv_reports/develop/"+projectName+"/"+projectName+"-"+versionName.split("-")[0]+"-"+commitID+"-"+csvtimestamp+".csv"
 		os.system(csvcmd)
 	else:
-		#print("Project directory Doesn't exists. Creating new one")
+		print("Project directory Doesn't exists. Creating new one")
 		os.mkdir("/work/sa.pw-bldmgr/blackduck_csv_reports/develop/"+projectName)
 		csvcmd = "mv "+projectName+"/*.csv /work/sa.pw-bldmgr/blackduck_csv_reports/develop/"+projectName+"/"+projectName+"-"+versionName.split("-")[0]+"-"+commitID+"-"+csvtimestamp+".csv"
 		os.system(csvcmd)
-
 jsoncmd1 = "mv securityRiskProfile.json securityRiskProfile_"+csvtimestamp+".json"
 jsoncmd2 = "mv licenseRiskProfile.json licenseRiskProfile_"+csvtimestamp+".json"
 jsoncmd3 = "mv operationalRiskProfile.json operationalRiskProfile_"+csvtimestamp+".json"
-jsoncmd4 = "mv *.json /work/sa.pw-bldmgr/blackduck_csv_reports/develop/"+projectName+"/"
-removeExtrafiles = "rm -rf *.zip "+projectName+"/"
 os.system(jsoncmd1)
 os.system(jsoncmd2)
 os.system(jsoncmd3)
-os.system(jsoncmd4)
 scpcmd = "scp -r /work/sa.pw-bldmgr/blackduck_csv_reports/develop/"+projectName+"/*"+csvtimestamp+"*  parallel@10.136.2.223:/blackduckreports/develop/"+projectName+"/"
 os.system(scpcmd)
