@@ -7,6 +7,7 @@ timestamps{
 		parameters([
 			string(defaultValue: 'network', description: 'Defining parameter for repository name', name: 'REPOSITORY_NAME', trim: false),
 			string(defaultValue: 'develop', description: 'Defining parameter for branch name', name: 'PW_BRANCH', trim: false),
+			choice(choices: ['6.0.0', '6.5.0', '6.8.0', '7.0.0', '7.5.0', '7.7.0', '7.8.0'], description: 'DETECT CLI VERSION TO RUN THE BLACKDUCK SCAN', name: 'DETECT_VERSION')
 		])
 	])
 	def BDToken="MTdiOWNkYTQtZDA2Yy00YzBhLTk0MzctMDMxMzU4MGQ0YWY1OjU3ODZjOGM4LTVkMDYtNDA0ZS1iNWNhLTVlMDYzZTg4ZTVhNw=="
@@ -78,6 +79,7 @@ timestamps{
 					dir("${REPOSITORY_NAME}"){
 						COMMITID = sh(script:"git rev-parse HEAD", returnStdout: true).trim()
 						sh """
+							export DETECT_LATEST_RELEASE_VERSION="${DETECT_VERSION}"
 							find . -empty -type d -delete
 							export bd_token="${BDToken}"
 							/opt/bd_tools/enhanced-splitter.sh "${REPOSITORY_NAME}" develop-HEAD "${REPOSITORY_NAME}" "${REPOSITORY_NAME}" "$projectSourcePath"
@@ -91,9 +93,8 @@ timestamps{
 					dir("${REPOSITORY_NAME}"){
 						COMMITID = sh(script:"git rev-parse HEAD", returnStdout: true).trim()
 						sh """
-							curl -O 'https://detect.synopsys.com/detect7.sh'
-							chmod +x detect7.sh
-							./detect7.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name="${REPOSITORY_NAME}" --detect.source.path="$projectSourcePath" --detect.code-location.name="${REPOSITORY_NAME}-develop-HEAD" --detect.project.version.name=develop-HEAD --detect.project.version.update=true --detect.timeout=3000 --detect.conan.path=/usr/local/bin/conan --detect.excluded.detector.types=CPAN --detect.nuget.inspector.air.gap.path=/opt/packaged-inspectors/nuget/ --detect.gradle.inspector.air.gap.path=/opt/packaged-inspector/gradle/ --detect.dotnet.path=/usr/local/bin/dotnet
+							export DETECT_LATEST_RELEASE_VERSION="${DETECT_VERSION}"
+							/opt/bd_tools/detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name="${REPOSITORY_NAME}" --detect.source.path="$projectSourcePath" --detect.code-location.name="${REPOSITORY_NAME}-develop-HEAD" --detect.project.version.name=develop-HEAD --detect.project.version.update=true --detect.timeout=3000 --detect.conan.path=/usr/local/bin/conan --detect.excluded.detector.types=CPAN --detect.nuget.inspector.air.gap.path=/opt/packaged-inspectors/nuget/ --detect.gradle.inspector.air.gap.path=/opt/packaged-inspector/gradle/ --detect.dotnet.path=/usr/local/bin/dotnet
 						"""
 					}
 				}
