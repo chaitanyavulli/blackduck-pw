@@ -7,7 +7,7 @@ timestamps{
 		parameters([
 			string(defaultValue: 'network', description: 'Defining parameter for repository name', name: 'REPOSITORY_NAME', trim: false),
 			string(defaultValue: 'develop', description: 'Defining parameter for branch name', name: 'PW_BRANCH', trim: false),
-			choice(choices: ['6.0.0', '6.5.0', '6.8.0', '7.0.0', '7.5.0', '7.7.0', '7.8.0'], description: 'DETECT CLI VERSION TO RUN THE BLACKDUCK SCAN', name: 'DETECT_VERSION')
+			choice(choices: ['7.8.0', '6.5.0', '6.8.0', '7.0.0', '7.5.0', '7.7.0', '6.0.0'], description: 'DETECT CLI VERSION TO RUN THE BLACKDUCK SCAN', name: 'DETECT_VERSION')
 		])
 	])
 	def BDToken="MTdiOWNkYTQtZDA2Yy00YzBhLTk0MzctMDMxMzU4MGQ0YWY1OjU3ODZjOGM4LTVkMDYtNDA0ZS1iNWNhLTVlMDYzZTg4ZTVhNw=="
