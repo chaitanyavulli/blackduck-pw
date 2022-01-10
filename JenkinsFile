@@ -94,8 +94,9 @@ timestamps{
 					dir("${REPOSITORY_NAME}"){
 						COMMITID = sh(script:"git rev-parse HEAD", returnStdout: true).trim()
 						sh """
+							rm -rf .git/
 							export DETECT_LATEST_RELEASE_VERSION="${DETECT_VERSION}"
-							/opt/bd_tools/detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name="${REPOSITORY_NAME}" --detect.source.path="$projectSourcePath" --detect.code-location.name="${REPOSITORY_NAME}-develop-HEAD" --detect.project.version.name=develop-HEAD --detect.project.version.update=true --detect.timeout=3000 --detect.conan.path=/usr/local/bin/conan --detect.excluded.detector.types=CPAN --detect.nuget.inspector.air.gap.path=/opt/packaged-inspectors/nuget/ --detect.gradle.inspector.air.gap.path=/opt/packaged-inspector/gradle/ --detect.dotnet.path=/usr/local/bin/dotnet
+							/opt/bd_tools/detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name="${REPOSITORY_NAME}" --detect.source.path="$projectSourcePath" --detect.code-location.name="${REPOSITORY_NAME}-develop-HEAD" --detect.project.version.name=develop-HEAD --detect.project.version.update=true --detect.timeout=3000 --detect.blackduck.signature.scanner.snippet.matching=SNIPPET_MATCHING --detect.conan.path=/usr/local/bin/conan --detect.excluded.detector.types=CPAN --detect.nuget.inspector.air.gap.path=/opt/packaged-inspectors/nuget/ --detect.gradle.inspector.air.gap.path=/opt/packaged-inspector/gradle/ --detect.dotnet.path=/usr/local/bin/dotnet
 						"""
 					}
 				}
