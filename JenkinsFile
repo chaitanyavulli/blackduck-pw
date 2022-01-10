@@ -83,7 +83,7 @@ timestamps{
 							find . -empty -type d -delete
 							export bd_token="${BDToken}"
 							rm -rf .git/
-							/opt/bd_tools/enhanced-splitter.sh "${REPOSITORY_NAME}" develop-HEAD "${REPOSITORY_NAME}" "${REPOSITORY_NAME}" "$projectSourcePath"
+							/opt/bd_tools/enhanced-splitter.sh "${REPOSITORY_NAME}" develop-HEAD "${REPOSITORY_NAME}-develop-HEAD" "${REPOSITORY_NAME}" "$projectSourcePath"
 						"""
 					}
 				}
