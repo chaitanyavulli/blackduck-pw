@@ -577,7 +577,7 @@ def corestacksphy(){
             '''
         }    
 }
-def xapp-dev(){
+def xappdev(){
 	dir('xapp-dev'){
 	
 	}
