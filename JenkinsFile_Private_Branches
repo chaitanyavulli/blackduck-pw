@@ -6,7 +6,7 @@ timestamps{
 	properties([
 		parameters([
 			string(defaultValue: 'network', description: 'Defining parameter for repository name', name: 'REPOSITORY_NAME', trim: false),
-			string(defaultValue: 'develop', description: 'Defining parameter for branch name', name: 'PW_BRANCH', trim: false),
+			string(defaultValue: 'private/devops-1234', description: 'Defining parameter for branch name', name: 'PW_BRANCH', trim: false),
 			choice(choices: ['7.8.0', '6.5.0', '6.8.0', '7.0.0', '7.5.0', '7.7.0', '6.0.0'], description: 'DETECT CLI VERSION TO RUN THE BLACKDUCK SCAN', name: 'DETECT_VERSION')
 		])
 	])
@@ -83,7 +83,7 @@ timestamps{
 							find . -empty -type d -delete
 							export bd_token="${BDToken}"
 							rm -rf .git/
-							/opt/bd_tools/enhanced-splitter.sh "${REPOSITORY_NAME}" develop-HEAD "${REPOSITORY_NAME}-develop-HEAD" "${REPOSITORY_NAME}" "$projectSourcePath"
+							/opt/bd_tools/enhanced-splitter.sh "${REPOSITORY_NAME}" "${PW_BRANCH}" "${REPOSITORY_NAME}-${PW_BRANCH}" "${REPOSITORY_NAME}" "$projectSourcePath"
 						"""
 					}
 				}
@@ -94,9 +94,9 @@ timestamps{
 					dir("${REPOSITORY_NAME}"){
 						COMMITID = sh(script:"git rev-parse HEAD", returnStdout: true).trim()
 						sh """
-							rm -rf .git/
 							export DETECT_LATEST_RELEASE_VERSION="${DETECT_VERSION}"
-							/opt/bd_tools/detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name="${REPOSITORY_NAME}" --detect.source.path="$projectSourcePath" --detect.code-location.name="${REPOSITORY_NAME}-develop-HEAD" --detect.project.version.name=develop-HEAD --detect.project.version.update=true --detect.timeout=3000 --detect.blackduck.signature.scanner.snippet.matching=SNIPPET_MATCHING --detect.conan.path=/usr/local/bin/conan --detect.excluded.detector.types=CPAN --detect.nuget.inspector.air.gap.path=/opt/packaged-inspectors/nuget/ --detect.gradle.inspector.air.gap.path=/opt/packaged-inspector/gradle/ --detect.dotnet.path=/usr/local/bin/dotnet
+							rm -rf .git/
+							/opt/bd_tools/detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name="${REPOSITORY_NAME}" --detect.source.path="$projectSourcePath" --detect.code-location.name="${REPOSITORY_NAME}-${PW_BRANCH}" --detect.project.version.name="${PW_BRANCH}" --detect.project.version.update=true --detect.timeout=3000 --detect.blackduck.signature.scanner.snippet.matching=SNIPPET_MATCHING --detect.conan.path=/usr/local/bin/conan --detect.excluded.detector.types=CPAN --detect.nuget.inspector.air.gap.path=/opt/packaged-inspectors/nuget/ --detect.gradle.inspector.air.gap.path=/opt/packaged-inspector/gradle/ --detect.dotnet.path=/usr/local/bin/dotnet
 						"""
 					}
 				}
@@ -105,9 +105,8 @@ timestamps{
 			stage('Generating Report'){
 				dir("${REPOSITORY_NAME}"){
 					sh """
-						python3 /work/sa.pw-bldmgr/blackduck_csv_reports/projectReport.py "${REPOSITORY_NAME}" "develop-HEAD" "${COMMITID}"
+						python3 /work/sa.pw-bldmgr/blackduck_csv_reports/privateBranchReport.py "${REPOSITORY_NAME}" "develop-HEAD" "${COMMITID}"
 					"""
-                }
 				sh '''
 						
 text="
@@ -121,8 +120,9 @@ Thanks
 "
 						echo "$text" > mailBody.txt
 						
-						cat mailBody.txt | mail -s "${BUILD_DISPLAY_NAME}- BLACKDUCK - ${BUILD_NUMBER}" -r 'buildmgr@parallelwireless.com' releng@parallelwireless.com
+						cat mailBody.txt | mail -a ${REPOSITORY_NAME}-*/*.csv -s "${BUILD_DISPLAY_NAME}- BLACKDUCK - ${BUILD_NUMBER}" -r 'buildmgr@parallelwireless.com' releng@parallelwireless.com
 				'''
+			}
 			}
             currentBuild.result = 'SUCCESS'
         } //closing try statement
@@ -577,7 +577,8 @@ def corestacksphy(){
             '''
         }    
 }
-def xappdev(){
+def xapp-dev()
+{
 	dir('xapp-dev'){
 	
 	}
