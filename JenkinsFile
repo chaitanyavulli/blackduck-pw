@@ -565,6 +565,8 @@ def near_rtric(){
 	dir('near_rtric'){
             sh """
             git submodule update --init
+			cd ci-build
+			./ci-build.sh app-all
             """	
 	}
 }
