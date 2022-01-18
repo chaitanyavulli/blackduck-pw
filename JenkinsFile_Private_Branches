@@ -233,11 +233,7 @@ def corestacks(){
                  -f docker/Dockerfile.user docker"
         )
 		image.inside('-v"${HOME}":${HOME}') {
-				sh 'make fdd.x86.install.6'
                 sh 'make fdd.x86.install.8'
-                sh 'make fdd.t2k.install'
-                //sh 'make fdd.t3k.install'
-                sh 'make tdd.t2k.install'
         }
 		
 	}
