@@ -323,8 +323,6 @@ def nodeh()
 def cwsrrh(){
 	dir('cws-rrh'){
 		sh """
-			sh -xe build.sh 2g-ceva
-			sh -xe build.sh 3g-ceva
 		"""
 	}
 }
