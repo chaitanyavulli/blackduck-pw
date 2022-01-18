@@ -7,12 +7,13 @@ timestamps{
 		parameters([
 			string(defaultValue: 'network', description: 'Defining parameter for repository name', name: 'REPOSITORY_NAME', trim: false),
 			string(defaultValue: 'private/devops-1234', description: 'Defining parameter for branch name', name: 'PW_BRANCH', trim: false),
-			choice(choices: ['7.8.0', '6.5.0', '6.8.0', '7.0.0', '7.5.0', '7.7.0', '6.0.0'], description: 'DETECT CLI VERSION TO RUN THE BLACKDUCK SCAN', name: 'DETECT_VERSION')
+			string(defaultValue: '7.8.0', description: 'DETECT CLI VERSION', name: 'DETECT_LATEST_RELEASE_VERSION', trim: false)
 		])
 	])
 	def BDToken="MTdiOWNkYTQtZDA2Yy00YzBhLTk0MzctMDMxMzU4MGQ0YWY1OjU3ODZjOGM4LTVkMDYtNDA0ZS1iNWNhLTVlMDYzZTg4ZTVhNw=="
 	def verCode = UUID.randomUUID().toString()
 	def COMMITID
+	def bd_project_name
 	
 	currentBuild.displayName = "#${BUILD_NUMBER}, ${REPOSITORY_NAME}"
 	currentBuild.description = "#${BUILD_NUMBER}, ${PW_BRANCH}"
@@ -39,6 +40,11 @@ timestamps{
                 else if("${REPOSITORY_NAME}" == "near_rtric")
 				{
 					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/near/${REPOSITORY_NAME}.git']]])
+				}
+				else if("${REPOSITORY_NAME}" == "analytics")
+				{
+					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/da/${REPOSITORY_NAME}.git']]])
+					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '3rdptysource'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '3rdptysource'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'ssh://git@nhbbm.parallelwireless.net:7999/git/da/3rdptysource.git']]])
 				}
 				else{
 					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/cd/${REPOSITORY_NAME}.git']]])
@@ -69,6 +75,28 @@ timestamps{
 			{
 				projectSourcePath = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}/"
 			}
+			dir('${REPOSITORY_NAME}'){
+				COMMITID = sh(script:"git rev-parse HEAD", returnStdout: true).trim()
+				sh """
+					rm -rf .git/
+				"""
+			}
+			if ("${REPOSITORY_NAME} == "rt-monitoring")
+			{
+				bd_project_name="IOND-rt-monitoring"
+			}
+			else if ("${REPOSITORY_NAME}" == "ems")
+			{
+				bd_project_name="unimanage-ems"
+			}
+			else if ("${REPOSITORY_NAME}" == "analytics")
+			{
+				bd_project_name="advanced-reporting"
+			}
+			else
+			{
+				bd_project_name="${REPOSITORY_NAME}"
+			}
 			//sizeWorkspace = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}".size()
 			sizeWorkspace = sh(script:"du -sk \${REPOSITORY_NAME}/ | awk '{print \$1}'", returnStdout: true).toInteger()
 			echo "Workspace Size = ${sizeWorkspace}"
@@ -77,13 +105,11 @@ timestamps{
 			{
 				stage('Blackduck Analysis'){
 					dir("${REPOSITORY_NAME}"){
-						COMMITID = sh(script:"git rev-parse HEAD", returnStdout: true).trim()
 						sh """
 							export DETECT_LATEST_RELEASE_VERSION="${DETECT_VERSION}"
 							find . -empty -type d -delete
 							export bd_token="${BDToken}"
-							rm -rf .git/
-							/opt/bd_tools/enhanced-splitter.sh "${REPOSITORY_NAME}" "${PW_BRANCH}" "${REPOSITORY_NAME}-${PW_BRANCH}" "${REPOSITORY_NAME}" "$projectSourcePath"
+							/opt/bd_tools/enhanced-splitter.sh "${bd_project_name}" "${PW_BRANCH}" "${bd_project_name}-${PW_BRANCH}" "${bd_project_name}" "$projectSourcePath"
 						"""
 					}
 				}
@@ -92,11 +118,9 @@ timestamps{
 			{
 				stage('Blackduck Analysis'){
 					dir("${REPOSITORY_NAME}"){
-						COMMITID = sh(script:"git rev-parse HEAD", returnStdout: true).trim()
 						sh """
 							export DETECT_LATEST_RELEASE_VERSION="${DETECT_VERSION}"
-							rm -rf .git/
-							/opt/bd_tools/detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name="${REPOSITORY_NAME}" --detect.source.path="$projectSourcePath" --detect.code-location.name="${REPOSITORY_NAME}-${PW_BRANCH}" --detect.project.version.name="${PW_BRANCH}" --detect.project.version.update=true --detect.timeout=3000 --detect.blackduck.signature.scanner.snippet.matching=SNIPPET_MATCHING --detect.conan.path=/usr/local/bin/conan --detect.excluded.detector.types=CPAN --detect.nuget.inspector.air.gap.path=/opt/packaged-inspectors/nuget/ --detect.gradle.inspector.air.gap.path=/opt/packaged-inspector/gradle/ --detect.dotnet.path=/usr/local/bin/dotnet
+							/opt/bd_tools/detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name="${bd_project_name}" --detect.source.path="$projectSourcePath" --detect.code-location.name="${bd_project_name}-${PW_BRANCH}" --detect.project.version.name="${PW_BRANCH}" --detect.project.version.update=true --detect.timeout=3000 --detect.blackduck.signature.scanner.snippet.matching=SNIPPET_MATCHING --detect.conan.path=/usr/local/bin/conan --detect.excluded.detector.types=CPAN --detect.nuget.inspector.air.gap.path=/opt/packaged-inspectors/nuget/ --detect.gradle.inspector.air.gap.path=/opt/packaged-inspector/gradle/ --detect.dotnet.path=/usr/local/bin/dotnet
 						"""
 					}
 				}
@@ -105,7 +129,7 @@ timestamps{
 			stage('Generating Report'){
 				dir("${REPOSITORY_NAME}"){
 					sh """
-						python3 /work/sa.pw-bldmgr/blackduck_csv_reports/privateBranchReport.py "${REPOSITORY_NAME}" "develop-HEAD" "${COMMITID}"
+						python3 /work/sa.pw-bldmgr/blackduck_csv_reports/privateBranchReport.py "${bd_project_name}" "develop-HEAD" "${COMMITID}"
 					"""
 				sh '''
 						
@@ -577,5 +601,16 @@ def xappdev()
 {
 	dir('xapp-dev'){
 	
+	}
+}
+def analytics(){
+	dir('analytics')
+	{
+		sh '''
+			source ~/.bashrc
+			mvn --version
+			cd pkg/installer
+			sh ./buildrpm.sh
+		'''
 	}
 }
