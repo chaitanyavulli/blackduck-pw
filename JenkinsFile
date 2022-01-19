@@ -81,7 +81,7 @@ timestamps{
 					rm -rf .git/
 				"""
 			}
-			if ("${REPOSITORY_NAME} == "rt-monitoring")
+			if ("${REPOSITORY_NAME}" == "rt-monitoring")
 			{
 				bd_project_name="IOND-rt-monitoring"
 			}
