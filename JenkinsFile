@@ -20,6 +20,11 @@ timestamps{
 	{
 		bd_version_name = "develop-HEAD"
 	}
+	else if ("${PW_BRANCH}".contains("release"))
+	{
+		def releaseBranchSplit = "${PW_BRANCH}".tokenize( '/' )
+		bd_version_name = "${releaseBranchSplit[1]}"
+	}
 	else{
 		bd_version_name = "${PW_BRANCH}"
 	}
@@ -53,7 +58,7 @@ timestamps{
 			}
 			else if ("${REPOSITORY_NAME}" == "ems")
 			{
-				bd_project_name="unimanage-ems"
+				bd_project_name="ems-UniManage"
 			}
 			else if ("${REPOSITORY_NAME}" == "analytics")
 			{
@@ -368,10 +373,10 @@ def nodeh()
     }
 }
 def cwsrrh(){
-	dir('cws-rrh'){
-		sh """
-		"""
-	}
+	sh """
+	./cws-rrh/build.sh 2g-ceva
+	./cws-rrh/build.sh 3g-ceva
+	"""
 }
 def pnfvnf(){
 	dir('pnf-vnf'){
