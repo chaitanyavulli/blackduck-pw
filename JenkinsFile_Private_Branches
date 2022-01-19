@@ -20,6 +20,11 @@ timestamps{
 	{
 		bd_version_name = "develop-HEAD"
 	}
+	else if ("${PW_BRANCH}".contains("release"))
+	{
+		def releaseBranchSplit = "${PW_BRANCH}".tokenize( '/' )
+		bd_version_name = "${releaseBranchSplit[1]}"
+	}
 	else{
 		bd_version_name = "${PW_BRANCH}"
 	}
@@ -367,10 +372,11 @@ def nodeh()
     }
 }
 def cwsrrh(){
-	dir('cws-rrh'){
-		sh """
-		"""
-	}
+	sh """
+	export repository_slug="cws-rrh"
+	./cws-rrh/build.sh 2g-ceva
+	./cws-rrh/build.sh 3g-ceva
+	"""
 }
 def pnfvnf(){
 	dir('pnf-vnf'){
@@ -520,8 +526,13 @@ def nrstack(){
 	}
 }
 def pwconfig(){
-	dir('pwconfig'){
-
+	dir('pwconfig/deploy'){
+        commit_time = sh (script: 'TZ=UTC date -d @`git show -s --format=%ct ${commit_hash}` +"%Y%m%d.%H%M"',returnStdout: true).trim()
+        short_commit_hash = sh (script: 'git rev-parse --short=8 HEAD',returnStdout: true).trim()
+        echo "commit_hash $commit_hash $commit_time"
+        sh """
+			sh -xe ci-build.sh staging ${PW_BRANCH} ${short_commit_hash} ${commit_time}
+        """
 	}
 }
 def pwgui(){
@@ -577,7 +588,22 @@ def ciphapp(){
 }
 def uniperf(){
 	dir('uniperf'){
-	
+		git clone --depth 1 ssh://git@nhbsm.parallelwireless.net:7999/git/cd/core.git -b ashukla/UD-27236-centos7-merge-pktgen hng_code_dir
+        wget https://pwartifactory.parallelwireless.net/artifactory/PW-BUILD-ENV/bldenv-3rdparty-tar/uniperf/uniperf-thirdparty-pkg-v7.2.tar.gz
+        mkdir temp
+        tar -zxf uniperf-thirdparty-pkg-v7.2.tar.gz -C temp
+        mkdir -p hng_code_dir/hng/ix64_x86_hng/install/
+        mv temp/datapath/ hng_code_dir/hng/ix64_x86_hng/install/
+        mkdir -p ./hng_code_dir/hng/data-path/fast-path/tools/pw-pktgen/
+        mkdir -p ./hng_code_dir/3ps/datapath_source/6wind-latest/output/_packages/fp/build/libnetfpc/
+        mkdir -p ./hng_code_dir/hng/data-path/fpmsg-lib/ix64_x86_hng/
+        mv temp/libdatapathInterface.a ./hng_code_dir/hng/data-path/fast-path/tools/pw-pktgen/libdatapathInterface.a
+        mv temp/libnetfpc.a ./hng_code_dir/3ps/datapath_source/6wind-latest/output/_packages/fp/build/libnetfpc/libnetfpc.a
+        mv temp/libpw_fpmsg.a ./hng_code_dir/hng/data-path/fpmsg-lib/ix64_x86_hng/libpw_fpmsg.a
+        mkdir -p hng_code_dir/hng/ix64_x86_hng/install/bin/
+        mv temp/pwfp-cli hng_code_dir/hng/ix64_x86_hng/install/bin/pwfp-cli
+        rmdir temp
+
 	}
 }
 def ems(){
@@ -596,7 +622,7 @@ def ems(){
 			export PATH=/usr/java/jdk1.8.0_102/bin:${ANT_HOME}/bin:/opt/swtools/bin/git/bin:/opt/cov-analysis-latest/bin:/usr/lib64/qt-3.3/bin:/opt/maven/bin:/opt/swtools/bin/git/bin/:/usr/local/bin:/usr/bin:/opt/swtools/bin/depot_tools/jfrog_CLI/:/usr/sbin:/opt/maven/bin:/opt/swtools/bin/depot_tools/jfrog_CLI/
 			export ELEMENTS_SOURCE=$ELEMENTS_ROOT/3rdPartySource/centeredlogic/elementcenter
 			cd unimanage
-			/opt/apache-ant-1.9.7/bin/ant -file build.xml -DPW_BRANCH=release/REL_4.2.0 -DBUILD_VERSION=4.2.0.4 -DPW_TAG_PREFIX=EMS -DPW_BUILD_EPOCH=1622146231 -Ddebug=true release
+			/opt/apache-ant-1.9.7/bin/ant -file build.xml -DPW_BRANCH="${PW_BRANCH}" -DBUILD_VERSION=6.4.0.100 -DPW_TAG_PREFIX=EMS -DPW_BUILD_EPOCH=1622146231 -Ddebug=true release
 		'''
 	}
 }
