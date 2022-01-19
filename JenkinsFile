@@ -7,19 +7,63 @@ timestamps{
 		parameters([
 			string(defaultValue: 'network', description: 'Defining parameter for repository name', name: 'REPOSITORY_NAME', trim: false),
 			string(defaultValue: 'develop', description: 'Defining parameter for branch name', name: 'PW_BRANCH', trim: false),
-			string(defaultValue: '7.8.0', description: 'DETECT CLI VERSION', name: 'DETECT_LATEST_RELEASE_VERSION', trim: false)
+			string(defaultValue: '7.8.0', description: 'DETECT CLI VERSION', name: 'DETECT_VERSION', trim: false)
 		])
 	])
 	def BDToken="MTdiOWNkYTQtZDA2Yy00YzBhLTk0MzctMDMxMzU4MGQ0YWY1OjU3ODZjOGM4LTVkMDYtNDA0ZS1iNWNhLTVlMDYzZTg4ZTVhNw=="
 	def verCode = UUID.randomUUID().toString()
 	def COMMITID
 	def bd_project_name
+	def projectSourcePath
+	def bd_version_name
+	if ("${PW_BRANCH}" == "develop")
+	{
+		bd_version_name = "develop-HEAD"
+	}
+	else{
+		bd_version_name = "${PW_BRANCH}"
+	}
 	
 	currentBuild.displayName = "#${BUILD_NUMBER}, ${REPOSITORY_NAME}"
 	currentBuild.description = "#${BUILD_NUMBER}, ${PW_BRANCH}"
+	
 	dir("${verCode}")
 	{
 		try{
+			if ("${REPOSITORY_NAME}" == "network")
+			{
+				projectSourcePath = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}/hng"
+			}
+			else if ("${REPOSITORY_NAME}" == "core")
+			{
+				projectSourcePath = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}/vru"
+			}
+			else if ("${REPOSITORY_NAME}" == "core-stacks")
+			{
+				projectSourcePath = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}/ltestack"
+			}
+			else
+			{
+				projectSourcePath = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}/"
+			}
+			
+			if ("${REPOSITORY_NAME}" == "rt-monitoring")
+			{
+				bd_project_name="IOND-rt-monitoring"
+			}
+			else if ("${REPOSITORY_NAME}" == "ems")
+			{
+				bd_project_name="unimanage-ems"
+			}
+			else if ("${REPOSITORY_NAME}" == "analytics")
+			{
+				bd_project_name="advanced-reporting"
+			}
+			else
+			{
+				bd_project_name="${REPOSITORY_NAME}"
+			}
+			
 			stage('Fetch Product Repository'){
 				//checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'ScmName', name: '${REPOSITORY_NAME}']], userRemoteConfigs: [[credentialsId: 'e8ff24f6-10d1-4129-8c70-7c66d7c2d6d7', url: 'ssh://git@git.parallelwireless.net:7999/cd/${REPOSITORY_NAME}.git']]])
 				if ("${REPOSITORY_NAME}" == "rt-monitoring")
@@ -50,6 +94,7 @@ timestamps{
 					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/cd/${REPOSITORY_NAME}.git']]])
 				}
 			}
+			
 			stage('Build Product'){
 				REPONAME = "${REPOSITORY_NAME}".replaceAll("-","");
 				if ("$REPONAME" == "2gstack")
@@ -58,45 +103,15 @@ timestamps{
 				}
 				"$REPONAME"()
 			}
-			def projectSourcePath=""
-			if ("${REPOSITORY_NAME}" == "network")
-			{
-				projectSourcePath = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}/hng"
-			}
-			else if ("${REPOSITORY_NAME}" == "core")
-			{
-				projectSourcePath = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}/vru"
-			}
-			else if ("${REPOSITORY_NAME}" == "core-stacks")
-			{
-				projectSourcePath = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}/ltestack"
-			}
-			else
-			{
-				projectSourcePath = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}/"
-			}
-			dir('${REPOSITORY_NAME}'){
+			
+			
+			dir("${REPOSITORY_NAME}"){
 				COMMITID = sh(script:"git rev-parse HEAD", returnStdout: true).trim()
 				sh """
 					rm -rf .git/
 				"""
 			}
-			if ("${REPOSITORY_NAME} == "rt-monitoring")
-			{
-				bd_project_name="IOND-rt-monitoring"
-			}
-			else if ("${REPOSITORY_NAME}" == "ems")
-			{
-				bd_project_name="unimanage-ems"
-			}
-			else if ("${REPOSITORY_NAME}" == "analytics")
-			{
-				bd_project_name="advanced-reporting"
-			}
-			else
-			{
-				bd_project_name="${REPOSITORY_NAME}"
-			}
+			
 			//sizeWorkspace = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}".size()
 			sizeWorkspace = sh(script:"du -sk \${REPOSITORY_NAME}/ | awk '{print \$1}'", returnStdout: true).toInteger()
 			echo "Workspace Size = ${sizeWorkspace}"
@@ -109,7 +124,7 @@ timestamps{
 							export DETECT_LATEST_RELEASE_VERSION="${DETECT_VERSION}"
 							find . -empty -type d -delete
 							export bd_token="${BDToken}"
-							/opt/bd_tools/enhanced-splitter.sh "${bd_project_name}" develop-HEAD "${bd_project_name}-develop-HEAD" "${bd_project_name}" "$projectSourcePath"
+							/opt/bd_tools/enhanced-splitter.sh "${bd_project_name}" ${bd_version_name} "${bd_project_name}-${bd_version_name}" "${bd_project_name}" "$projectSourcePath"
 						"""
 					}
 				}
@@ -120,7 +135,7 @@ timestamps{
 					dir("${REPOSITORY_NAME}"){
 						sh """
 							export DETECT_LATEST_RELEASE_VERSION="${DETECT_VERSION}"
-							/opt/bd_tools/detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name="${bd_project_name}" --detect.source.path="$projectSourcePath" --detect.code-location.name="${bd_project_name}-develop-HEAD" --detect.project.version.name=develop-HEAD --detect.project.version.update=true --detect.timeout=6000 --detect.blackduck.signature.scanner.snippet.matching=SNIPPET_MATCHING --detect.conan.path=/usr/local/bin/conan --detect.excluded.detector.types=CPAN --detect.nuget.inspector.air.gap.path=/opt/packaged-inspectors/nuget/ --detect.gradle.inspector.air.gap.path=/opt/packaged-inspector/gradle/ --detect.dotnet.path=/usr/local/bin/dotnet
+							/opt/bd_tools/detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name="${bd_project_name}" --detect.source.path="$projectSourcePath" --detect.code-location.name="${bd_project_name}-${bd_version_name}" --detect.project.version.name="${bd_version_name}" --detect.project.version.update=true --detect.timeout=6000 --detect.blackduck.signature.scanner.snippet.matching=SNIPPET_MATCHING --detect.conan.path=/usr/local/bin/conan --detect.excluded.detector.types=CPAN --detect.nuget.inspector.air.gap.path=/opt/packaged-inspectors/nuget/ --detect.gradle.inspector.air.gap.path=/opt/packaged-inspector/gradle/ --detect.dotnet.path=/usr/local/bin/dotnet
 						"""
 					}
 				}
@@ -128,9 +143,12 @@ timestamps{
 			error_check()
 			stage('Generating Report'){
 				dir("${REPOSITORY_NAME}"){
-					sh """
-						python3 /work/sa.pw-bldmgr/blackduck_csv_reports/projectReport.py "${bd_project_name}" "develop-HEAD" "${COMMITID}"
-					"""
+					if ("${PW_BRANCH}" == "develop")
+					{
+						sh """
+							python3 /work/sa.pw-bldmgr/blackduck_csv_reports/projectReport.py "${bd_project_name}" "${bd_version_name}" "${COMMITID}"
+						"""
+					}
                 }
 				sh '''
 						
@@ -138,7 +156,12 @@ text="
 Hi
 						
 Blackduck analysis for ${REPOSITORY_NAME} completed. Please find the attachment to view the result
+
+Repository : ${bd_project_name}
+Version : ${bd_version_name}
 						
+CSV Report generated and saved on nhcoverity and website servers
+
 Build URL : ${BUILD_URL}
 
 Thanks
