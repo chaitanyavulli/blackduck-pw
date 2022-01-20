@@ -16,6 +16,7 @@ timestamps{
 	def bd_project_name
 	def projectSourcePath
 	def bd_version_name
+	
 	if ("${PW_BRANCH}" == "develop")
 	{
 		bd_version_name = "develop-HEAD"
@@ -124,11 +125,24 @@ timestamps{
 			error_check()
 			stage('Generating Report'){
 				dir("${REPOSITORY_NAME}"){
-					if ("${PW_BRANCH}" == "develop")
+					if ("${PW_BRANCH}".contains("release"))
 					{
+						def exists = fileExists "/work/sa.pw-bldmgr/blackduck_csv_reports/${PW_BRANCH}/${REPOSITORY_NAME}/"
+						if (!exists)
+						{
+							sh """
+								mkdir -p /work/sa.pw-bldmgr/blackduck_csv_reports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/
+							"""
+						}
 						sh """
 							python3 /work/sa.pw-bldmgr/blackduck_csv_reports/projectReport.py "${bd_project_name}" "${bd_version_name}" "${COMMITID}"
+							cp licenseRiskProfile*.json securityRiskProfile*.json operationalRiskProfile*.json "${bd_project_name}"-"bd_version_name"/*.csv /work/sa.pw-bldmgr/blackduck_csv_reports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/
+							ssh -o StrictHostKeyChecking=no parallel@10.136.2.223 '[ -d /blackduckreports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/ ] && echo exists || mkdir -p /blackduckreports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/'
+							scp -o StrictHostKeyChecking=no licenseRiskProfile*.json securityRiskProfile*.json operationalRiskProfile*.json "${bd_project_name}"-"bd_version_name"/*.csv parallel@10.136.2.223:/blackduckreports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/
 						"""
+					}
+					else{
+						echo "Report generation not supported for this branch"
 					}
                 }
 				sh '''
