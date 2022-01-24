@@ -25,7 +25,7 @@ projectName=sys.argv[1]
 versionName=sys.argv[2]
 commitID=sys.argv[3]
 if projectName == "":
-	exit("Please specify the package name")
+        exit("Please specify the package name")
 
 
 
@@ -44,19 +44,19 @@ projectdata = projectresponse.json()
 ReportURL = ""
 
 for each in projectdata['items']:
-	if each['name'] == projectName:
-		print(each['_meta']['links'][0]['href'])
-		versionsresponse = requests.request("GET", each['_meta']['links'][0]['href'], headers=projectheaders)
-		versionsdata = versionsresponse.json()
-		for eachversion in versionsdata['items']:
-			
-			if eachversion['versionName'] == versionName:
-				ReportURL = eachversion['_meta']['links'][8]['href']
-				with open('securityRiskProfile.json', 'w') as f:
-    					json.dump(eachversion['securityRiskProfile'], f)
-				with open('licenseRiskProfile.json', 'w') as f:
+        if each['name'] == projectName:
+                print(each['_meta']['links'][0]['href'])
+                versionsresponse = requests.request("GET", each['_meta']['links'][0]['href'], headers=projectheaders)
+                versionsdata = versionsresponse.json()
+                for eachversion in versionsdata['items']:
+
+                        if eachversion['versionName'] == versionName:
+                                ReportURL = eachversion['_meta']['links'][8]['href']
+                                with open('securityRiskProfile.json', 'w') as f:
+                                        json.dump(eachversion['securityRiskProfile'], f)
+                                with open('licenseRiskProfile.json', 'w') as f:
                                        json.dump(eachversion['licenseRiskProfile'], f)
-				with open('operationalRiskProfile.json', 'w') as f:
+                                with open('operationalRiskProfile.json', 'w') as f:
                                         json.dump(eachversion['operationalRiskProfile'], f)
 
 #print(ReportURL)
@@ -64,9 +64,9 @@ versionid = ReportURL.split('/')[7]
 ReportURL = "https://parallelwireless.app.blackduck.com/api/versions/"+versionid+"/reports"
 #print(ReportURL)
 reportheaders = {
-	'X-CSRF-TOKEN': xcsrftoken,
-	'Content-Type': 'application/vnd.blackducksoftware.report-4+json',
-	'Authorization': 'Bearer '+bearertoken
+        'X-CSRF-TOKEN': xcsrftoken,
+        'Content-Type': 'application/vnd.blackducksoftware.report-4+json',
+        'Authorization': 'Bearer '+bearertoken
 }
 reportdata = "{ \"reportFormat\" : \"CSV\", \"locale\" : \"en_US\", \"versionId\" : \""+versionid+"\", \"categories\": [\"COMPONENTS\"], \"reportType\" : \"[VERSION_LICENSE, VERSION, VERSION_VULNERABILITY_REMEDIATION, VERSION_VULNERABILITY_STATUS, VERSION_VULNERABILITY_UPDATE]\" }\r\n"
 
@@ -82,39 +82,27 @@ reportlistdata = reportlistreponse.json()
 #print(reportlistdata)
 csvtimestamp=""
 for reporteachlist in reportlistdata['items']:
-	reportStatus = reporteachlist['status']
-	counter = 0
-	while reportStatus == "IN_PROGRESS":
-		time.sleep(60)
-		counter = counter+1
-		reportlistreponse = requests.request("GET", ReportURL+"?limit=1", headers=reportheaders)
-		reportlistdataforloop = reportlistreponse.json()
-		reportStatus = reportlistdataforloop['items'][0]['status']
-		if counter == 10:
-			raise ValueError('Report Generation taking long time. Please check on blackduck site : https://parallelwireless.app.blackduck.com/')
-	downloadURL=reporteachlist['_meta']['links'][1]['href']
-	r = requests.request("GET", downloadURL, headers=reportheaders)
-	with open(projectName+"_"+versionName+".zip", "wb") as code:
-		code.write(r.content)
-	with zipfile.ZipFile(projectName+"_"+versionName+".zip", 'r') as zip_ref:
-		filename = zip_ref.extractall()
-	cmd = "mv "+projectName+"-"+versionName+"* "+projectName
-	os.system(cmd)
-	csvfilename = os.listdir(projectName)[0].split(".")[0].split("_")
-	csvtimestamp = csvfilename[1]+"_"+csvfilename[2]
-	if os.path.isdir("/work/sa.pw-bldmgr/blackduck_csv_reports/develop/"+projectName):
-		csvcmd = "mv "+projectName+"/*.csv /work/sa.pw-bldmgr/blackduck_csv_reports/develop/"+projectName+"/"+projectName+"-"+versionName.split("-")[0]+"-"+commitID+"-"+csvtimestamp+".csv"
-		os.system(csvcmd)
-	else:
-		print("Project directory Doesn't exists. Creating new one")
-		os.mkdir("/work/sa.pw-bldmgr/blackduck_csv_reports/develop/"+projectName)
-		csvcmd = "mv "+projectName+"/*.csv /work/sa.pw-bldmgr/blackduck_csv_reports/develop/"+projectName+"/"+projectName+"-"+versionName.split("-")[0]+"-"+commitID+"-"+csvtimestamp+".csv"
-		os.system(csvcmd)
-jsoncmd1 = "mv securityRiskProfile.json securityRiskProfile_"+csvtimestamp+".json"
-jsoncmd2 = "mv licenseRiskProfile.json licenseRiskProfile_"+csvtimestamp+".json"
-jsoncmd3 = "mv operationalRiskProfile.json operationalRiskProfile_"+csvtimestamp+".json"
-os.system(jsoncmd1)
-os.system(jsoncmd2)
-os.system(jsoncmd3)
-scpcmd = "scp -r /work/sa.pw-bldmgr/blackduck_csv_reports/develop/"+projectName+"/*"+csvtimestamp+"*  parallel@10.136.2.223:/blackduckreports/develop/"+projectName+"/"
-os.system(scpcmd)
+        reportStatus = reporteachlist['status']
+        counter = 0
+        while reportStatus == "IN_PROGRESS":
+                time.sleep(60)
+                counter = counter+1
+                reportlistreponse = requests.request("GET", ReportURL+"?limit=1", headers=reportheaders)
+                reportlistdataforloop = reportlistreponse.json()
+                reportStatus = reportlistdataforloop['items'][0]['status']
+                if counter == 10:
+                        raise ValueError('Report Generation taking long time. Please check on blackduck site : https://parallelwireless.app.blackduck.com/')
+        downloadURL=reporteachlist['_meta']['links'][1]['href']
+        r = requests.request("GET", downloadURL, headers=reportheaders)
+        with open(projectName+"_"+versionName+".zip", "wb") as code:
+                code.write(r.content)
+        with zipfile.ZipFile(projectName+"_"+versionName+".zip", 'r') as zip_ref:
+                filename = zip_ref.extractall()
+        os.system("mv "+projectName+"-"+versionName+"* "+projectName+"-"+versionName)
+        os.remove(projectName+"_"+versionName+".zip")
+        csvfilename = os.listdir(projectName+"-"+versionName)[0].split(".")[0].split("_")
+        csvtimestamp = csvfilename[1]+"_"+csvfilename[2]
+        os.system("mv "+projectName+"-"+versionName+"/*.csv "+projectName+"-"+versionName+"/"+projectName+"-"+versionName+"-"+commitID+"-"+csvtimestamp+".csv")
+        os.system("mv securityRiskProfile.json securityRiskProfile_"+csvtimestamp+".json")
+        os.system("mv licenseRiskProfile.json licenseRiskProfile_"+csvtimestamp+".json")
+        os.system("mv operationalRiskProfile.json operationalRiskProfile_"+csvtimestamp+".json")

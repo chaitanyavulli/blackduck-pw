@@ -57,14 +57,6 @@ timestamps{
 			{
 				bd_project_name="IOND-rt-monitoring"
 			}
-			else if ("${REPOSITORY_NAME}" == "ems")
-			{
-				bd_project_name="ems-UniManage"
-			}
-			else if ("${REPOSITORY_NAME}" == "analytics")
-			{
-				bd_project_name="advanced-reporting"
-			}
 			else
 			{
 				bd_project_name="${REPOSITORY_NAME}"
@@ -76,25 +68,9 @@ timestamps{
 				{
 					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/da/${REPOSITORY_NAME}.git']]])
 				}
-				else if ("${REPOSITORY_NAME}" == "bbpms_bsp"){
-					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/bsp/${REPOSITORY_NAME}.git']]])
-
-				}
-				else if("${REPOSITORY_NAME}" == "uniperf"){
-					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/tool/${REPOSITORY_NAME}.git']]])
-				}
-				else if("${REPOSITORY_NAME}" == "ems")
-				{
-					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/um/${REPOSITORY_NAME}.git']]])
-				}
                 else if("${REPOSITORY_NAME}" == "near_rtric")
 				{
 					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/near/${REPOSITORY_NAME}.git']]])
-				}
-				else if("${REPOSITORY_NAME}" == "analytics")
-				{
-					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/da/${REPOSITORY_NAME}.git']]])
-					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '3rdptysource'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '3rdptysource'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'ssh://git@nhbbm.parallelwireless.net:7999/git/da/3rdptysource.git']]])
 				}
 				else{
 					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/cd/${REPOSITORY_NAME}.git']]])
@@ -149,7 +125,7 @@ timestamps{
 			error_check()
 			stage('Generating Report'){
 				dir("${REPOSITORY_NAME}"){
-					if ("${PW_BRANCH}" == "develop")
+					if ("${PW_BRANCH}".contains("release"))
 					{
 						def exists = fileExists "/work/sa.pw-bldmgr/blackduck_csv_reports/${PW_BRANCH}/${REPOSITORY_NAME}/"
 						if (!exists)
@@ -237,10 +213,8 @@ def network()
 	dir('network'){
 		sh '''
 		cd hng/ci_scripts/build/
-		python hng-build.py build-docker
-		python hng-build.py make clean.all
-		python hng-build.py ci_scripts/build/get-3rd-party-pkgs.py
-		python hng-build.py ./buildarchive.sh lacrpm 6
+		export GIT_COMMIT=$(git rev-parse HEAD)
+		sh -xe ci-build.sh ${GIT_COMMIT} ${PW_BRANCH}
 		'''
 	}
 }
@@ -265,15 +239,6 @@ def vru3gphy()
 def vru2gphy()
 {
 	dir('vru-2g-phy'){
-		sh '''
-			export GIT_COMMIT=$(git rev-parse HEAD)
-			sh -xe ci-build.sh
-		'''
-	}
-}
-def vru5gphy()
-{
-	dir('vru-5g-phy'){
 		sh '''
 			export GIT_COMMIT=$(git rev-parse HEAD)
 			sh -xe ci-build.sh
@@ -345,7 +310,7 @@ def twogstack(){
             sh """
 				pwd
 				ls
-				make 2g.dist
+				make -C 2g-stack 2g.dist
 			"""
         }
 	}
@@ -382,7 +347,7 @@ def nodeh()
                 sh 'rm -rf ../build_li32 ../build_li64 ../build_hw ../build_sources ../trace'
                 sh './setup_hw -c 900'
                 sh 'source /opt/intel/system_studio_2019/bin/compilervars.sh intel64; ./setup_hw -t -p8'
-            }		
+            }
 	    }
     }
 }
@@ -567,80 +532,7 @@ def rtmonitoring(){
 	
 	}
 }
-def bbpms_bsp(){
-	dir('bbpms_bsp'){
-        def uid = sh(label: "Read user UID", returnStdout: true, script: "id -u").trim()
-        def gid = sh(label: "Read user GID", returnStdout: true, script: "id -g").trim()
-        def group = sh(label: "Read user group name", returnStdout: true, script: "id -gn").trim()
-        def current_dir = pwd()
 
-		docker_image = docker.build(
-            "bbpms_bsp:bbpms_bsp",
-            "--build-arg HOME=${HOME} \
-             --build-arg UID=${uid} \
-             --build-arg USER=${USER} \
-             --build-arg GID=${gid} \
-             --build-arg GROUP=${group} \
-             --build-arg PWD=${current_dir} \
-             -f docker/Dockerfile docker"
-        )
-        docker_image.inside('-v"${HOME}":${HOME}') {
-            sh 'pwd'
-            sh 'make clean'
-            sh 'make mag_install'
-        }
-	}
-}
-def ciphapp(){
-	dir('ciph-app'){
-        sh '''
-        echo "Building: ciph-app"
-                  chmod +x ci-build.sh
-                  pwd
-                  ./ci-build.sh
-        '''
-	}
-}
-def uniperf(){
-	dir('uniperf'){
-		git clone --depth 1 ssh://git@nhbsm.parallelwireless.net:7999/git/cd/core.git -b ashukla/UD-27236-centos7-merge-pktgen hng_code_dir
-        wget https://pwartifactory.parallelwireless.net/artifactory/PW-BUILD-ENV/bldenv-3rdparty-tar/uniperf/uniperf-thirdparty-pkg-v7.2.tar.gz
-        mkdir temp
-        tar -zxf uniperf-thirdparty-pkg-v7.2.tar.gz -C temp
-        mkdir -p hng_code_dir/hng/ix64_x86_hng/install/
-        mv temp/datapath/ hng_code_dir/hng/ix64_x86_hng/install/
-        mkdir -p ./hng_code_dir/hng/data-path/fast-path/tools/pw-pktgen/
-        mkdir -p ./hng_code_dir/3ps/datapath_source/6wind-latest/output/_packages/fp/build/libnetfpc/
-        mkdir -p ./hng_code_dir/hng/data-path/fpmsg-lib/ix64_x86_hng/
-        mv temp/libdatapathInterface.a ./hng_code_dir/hng/data-path/fast-path/tools/pw-pktgen/libdatapathInterface.a
-        mv temp/libnetfpc.a ./hng_code_dir/3ps/datapath_source/6wind-latest/output/_packages/fp/build/libnetfpc/libnetfpc.a
-        mv temp/libpw_fpmsg.a ./hng_code_dir/hng/data-path/fpmsg-lib/ix64_x86_hng/libpw_fpmsg.a
-        mkdir -p hng_code_dir/hng/ix64_x86_hng/install/bin/
-        mv temp/pwfp-cli hng_code_dir/hng/ix64_x86_hng/install/bin/pwfp-cli
-        rmdir temp
-
-	}
-}
-def ems(){
-	dir('ems'){
-		sh '''
-			export ELEMENTS_ROOT=$(pwd)
-			export ELEMENTS_BUILD=$ELEMENTS_ROOT/build
-			export JAVA_HOME=/usr/java/jdk1.8.0_102
-			export CL_COMMONS_BUILD=$ELEMENTS_BUILD/centeredlogic-commons
-			export ELEMENTS_RUN=$ELEMENTS_ROOT/run
-			export MODULE_NAME=UniCloud
-			export NETCONFX_BUILD=$ELEMENTS_BUILD/netconfX
-			export ELEMENTS_DIST=$ELEMENTS_ROOT/dist/uni-manage
-			export PRODUCT_NAME=unimanage
-			export ANT_HOME=/opt/apache-ant-1.9.7
-			export PATH=/usr/java/jdk1.8.0_102/bin:${ANT_HOME}/bin:/opt/swtools/bin/git/bin:/opt/cov-analysis-latest/bin:/usr/lib64/qt-3.3/bin:/opt/maven/bin:/opt/swtools/bin/git/bin/:/usr/local/bin:/usr/bin:/opt/swtools/bin/depot_tools/jfrog_CLI/:/usr/sbin:/opt/maven/bin:/opt/swtools/bin/depot_tools/jfrog_CLI/
-			export ELEMENTS_SOURCE=$ELEMENTS_ROOT/3rdPartySource/centeredlogic/elementcenter
-			cd unimanage
-			/opt/apache-ant-1.9.7/bin/ant -file build.xml -DPW_BRANCH="${PW_BRANCH}" -DBUILD_VERSION=6.4.0.100 -DPW_TAG_PREFIX=EMS -DPW_BUILD_EPOCH=1622146231 -Ddebug=true release
-		'''
-	}
-}
 
 def near_rtric(){
 	dir('near_rtric'){
@@ -663,16 +555,5 @@ def corestacksphy(){
 def xappdev(){
 	dir('xapp-dev'){
 	
-	}
-}
-def analytics(){
-	dir('analytics')
-	{
-		sh '''
-			source ~/.bashrc
-			mvn --version
-			cd pkg/installer
-			sh ./buildrpm.sh
-		'''
 	}
 }
