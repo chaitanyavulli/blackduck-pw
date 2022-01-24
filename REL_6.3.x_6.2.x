@@ -152,8 +152,8 @@ Hi
 						
 Blackduck analysis for ${REPOSITORY_NAME} completed. Please find the attachment to view the result
 
-Repository : ${bd_project_name}
-Version : ${bd_version_name}
+Repository : '${bd_project_name}'
+Version : '${bd_version_name}'
 						
 CSV Report generated and saved on nhcoverity and website servers
 
