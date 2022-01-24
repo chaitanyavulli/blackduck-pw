@@ -588,22 +588,23 @@ def ciphapp(){
 }
 def uniperf(){
 	dir('uniperf'){
-		git clone --depth 1 ssh://git@nhbsm.parallelwireless.net:7999/git/cd/core.git -b ashukla/UD-27236-centos7-merge-pktgen hng_code_dir
-        wget https://pwartifactory.parallelwireless.net/artifactory/PW-BUILD-ENV/bldenv-3rdparty-tar/uniperf/uniperf-thirdparty-pkg-v7.2.tar.gz
-        mkdir temp
-        tar -zxf uniperf-thirdparty-pkg-v7.2.tar.gz -C temp
-        mkdir -p hng_code_dir/hng/ix64_x86_hng/install/
-        mv temp/datapath/ hng_code_dir/hng/ix64_x86_hng/install/
-        mkdir -p ./hng_code_dir/hng/data-path/fast-path/tools/pw-pktgen/
-        mkdir -p ./hng_code_dir/3ps/datapath_source/6wind-latest/output/_packages/fp/build/libnetfpc/
-        mkdir -p ./hng_code_dir/hng/data-path/fpmsg-lib/ix64_x86_hng/
-        mv temp/libdatapathInterface.a ./hng_code_dir/hng/data-path/fast-path/tools/pw-pktgen/libdatapathInterface.a
-        mv temp/libnetfpc.a ./hng_code_dir/3ps/datapath_source/6wind-latest/output/_packages/fp/build/libnetfpc/libnetfpc.a
-        mv temp/libpw_fpmsg.a ./hng_code_dir/hng/data-path/fpmsg-lib/ix64_x86_hng/libpw_fpmsg.a
-        mkdir -p hng_code_dir/hng/ix64_x86_hng/install/bin/
-        mv temp/pwfp-cli hng_code_dir/hng/ix64_x86_hng/install/bin/pwfp-cli
-        rmdir temp
-
+		sh """
+			git clone --depth 1 ssh://git@nhbsm.parallelwireless.net:7999/git/cd/core.git -b ashukla/UD-27236-centos7-merge-pktgen hng_code_dir
+			wget https://pwartifactory.parallelwireless.net/artifactory/PW-BUILD-ENV/bldenv-3rdparty-tar/uniperf/uniperf-thirdparty-pkg-v7.2.tar.gz
+			mkdir temp
+			tar -zxf uniperf-thirdparty-pkg-v7.2.tar.gz -C temp
+			mkdir -p hng_code_dir/hng/ix64_x86_hng/install/
+			mv temp/datapath/ hng_code_dir/hng/ix64_x86_hng/install/
+			mkdir -p ./hng_code_dir/hng/data-path/fast-path/tools/pw-pktgen/
+			mkdir -p ./hng_code_dir/3ps/datapath_source/6wind-latest/output/_packages/fp/build/libnetfpc/
+			mkdir -p ./hng_code_dir/hng/data-path/fpmsg-lib/ix64_x86_hng/
+			mv temp/libdatapathInterface.a ./hng_code_dir/hng/data-path/fast-path/tools/pw-pktgen/libdatapathInterface.a
+			mv temp/libnetfpc.a ./hng_code_dir/3ps/datapath_source/6wind-latest/output/_packages/fp/build/libnetfpc/libnetfpc.a
+			mv temp/libpw_fpmsg.a ./hng_code_dir/hng/data-path/fpmsg-lib/ix64_x86_hng/libpw_fpmsg.a
+			mkdir -p hng_code_dir/hng/ix64_x86_hng/install/bin/
+			mv temp/pwfp-cli hng_code_dir/hng/ix64_x86_hng/install/bin/pwfp-cli
+			rmdir temp
+		"""
 	}
 }
 def ems(){
