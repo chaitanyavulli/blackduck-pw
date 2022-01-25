@@ -508,9 +508,9 @@ def nrstack(){
 }
 def pwconfig(){
 	dir('pwconfig/deploy'){
-        commit_time = sh (script: 'TZ=UTC date -d @`git show -s --format=%ct ${commit_hash}` +"%Y%m%d.%H%M"',returnStdout: true).trim()
+        commit_time = sh (script: 'TZ=UTC date -d @`git show -s --format=%ct HEAD` +"%Y%m%d.%H%M"',returnStdout: true).trim()
         short_commit_hash = sh (script: 'git rev-parse --short=8 HEAD',returnStdout: true).trim()
-        echo "commit_hash $commit_hash $commit_time"
+        echo "commit_hash $commit_time"
         sh """
 			sh -xe ci-build.sh staging ${PW_BRANCH} ${short_commit_hash} ${commit_time}
         """
