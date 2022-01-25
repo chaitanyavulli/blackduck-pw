@@ -16,6 +16,7 @@ timestamps{
 	def bd_project_name
 	def projectSourcePath
 	def bd_version_name
+	def changeSetCount = 0
 	
 	if ("${PW_BRANCH}" == "develop")
 	{
@@ -100,78 +101,99 @@ timestamps{
 					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/cd/${REPOSITORY_NAME}.git']]])
 				}
 			}
-			
-			stage('Build Product'){
-				REPONAME = "${REPOSITORY_NAME}".replaceAll("-","");
-				if ("$REPONAME" == "2gstack")
-				{
-					REPONAME="twogstack"
-				}
-				"$REPONAME"()
-			}
-			
-			
-			dir("${REPOSITORY_NAME}"){
-				COMMITID = sh(script:"git rev-parse HEAD", returnStdout: true).trim()
-				sh """
-					rm -rf .git/
-				"""
-			}
-			
-			//sizeWorkspace = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}".size()
-			sizeWorkspace = sh(script:"du -sk \${REPOSITORY_NAME}/ | awk '{print \$1}'", returnStdout: true).toInteger()
-			echo "Workspace Size = ${sizeWorkspace}"
-			
-			if ("${sizeWorkspace}".toInteger() > 5242880)
+			stage('BLACKDUCK SCAN CHECK')
 			{
-				stage('Blackduck Analysis'){
-					dir("${REPOSITORY_NAME}"){
-						sh """
-							export DETECT_LATEST_RELEASE_VERSION="${DETECT_VERSION}"
-							find . -empty -type d -delete
-							export bd_token="${BDToken}"
-							/opt/bd_tools/enhanced-splitter.sh "${bd_project_name}" ${bd_version_name} "${bd_project_name}-${bd_version_name}" "${bd_project_name}" "$projectSourcePath"
-						"""
+				def changeLogSets = currentBuild.changeSets
+				for (int i = 0; i < changeLogSets.size(); i++) {
+					def entries = changeLogSets[i].items
+					for (int j = 0; j < entries.length; j++) {
+						def entry = entries[j]
+						echo "${entry.commitId} by ${entry.author} on ${new Date(entry.timestamp)}: ${entry.msg}"
+						def files = new ArrayList(entry.affectedFiles)
+						for (int k = 0; k < files.size(); k++) {
+							def file = files[k]
+							changeSetCount = changeSetCount+1
+							echo "  ${file.editType.name} ${file.path}"
+						}
 					}
 				}
+				echo "Number of changes : ${changeSetCount}"
 			}
-			else
+			if ("${changeSetCount}" == "0")
 			{
-				stage('Blackduck Analysis'){
-					dir("${REPOSITORY_NAME}"){
-						sh """
-							export DETECT_LATEST_RELEASE_VERSION="${DETECT_VERSION}"
-							/opt/bd_tools/detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name="${bd_project_name}" --detect.source.path="$projectSourcePath" --detect.code-location.name="${bd_project_name}-${bd_version_name}" --detect.project.version.name="${bd_version_name}" --detect.project.version.update=true --detect.timeout=6000 --detect.blackduck.signature.scanner.snippet.matching=SNIPPET_MATCHING --detect.conan.path=/usr/local/bin/conan --detect.excluded.detector.types=CPAN --detect.nuget.inspector.air.gap.path=/opt/packaged-inspectors/nuget/ --detect.gradle.inspector.air.gap.path=/opt/packaged-inspector/gradle/ --detect.dotnet.path=/usr/local/bin/dotnet
-						"""
-					}
-				}
+				echo "${PW_BRANCH} for the repository ${REPOSITORY_NAME} doesn't have any changes from last week. Aborting blackduck scan"
 			}
-			error_check()
-			stage('Generating Report'){
-				dir("${REPOSITORY_NAME}"){
-					if ("${PW_BRANCH}" == "develop")
+			else{
+				stage('Build Product'){
+					REPONAME = "${REPOSITORY_NAME}".replaceAll("-","");
+					if ("$REPONAME" == "2gstack")
 					{
-						def exists = fileExists "/work/sa.pw-bldmgr/blackduck_csv_reports/${PW_BRANCH}/${REPOSITORY_NAME}/"
-						if (!exists)
-						{
+						REPONAME="twogstack"
+					}
+					"$REPONAME"()
+				}
+				
+				
+				dir("${REPOSITORY_NAME}"){
+					COMMITID = sh(script:"git rev-parse HEAD", returnStdout: true).trim()
+					sh """
+						rm -rf .git/
+					"""
+				}
+				
+				//sizeWorkspace = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}".size()
+				sizeWorkspace = sh(script:"du -sk \${REPOSITORY_NAME}/ | awk '{print \$1}'", returnStdout: true).toInteger()
+				echo "Workspace Size = ${sizeWorkspace}"
+				
+				if ("${sizeWorkspace}".toInteger() > 5242880)
+				{
+					stage('Blackduck Analysis'){
+						dir("${REPOSITORY_NAME}"){
 							sh """
-								mkdir -p /work/sa.pw-bldmgr/blackduck_csv_reports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/
+								export DETECT_LATEST_RELEASE_VERSION="${DETECT_VERSION}"
+								find . -empty -type d -delete
+								export bd_token="${BDToken}"
+								/opt/bd_tools/enhanced-splitter.sh "${bd_project_name}" ${bd_version_name} "${bd_project_name}-${bd_version_name}" "${bd_project_name}" "$projectSourcePath"
 							"""
 						}
-						sh """
-							python3 /work/sa.pw-bldmgr/blackduck_csv_reports/projectReport.py "${bd_project_name}" "${bd_version_name}" "${COMMITID}"
-							cp licenseRiskProfile*.json securityRiskProfile*.json operationalRiskProfile*.json "${bd_project_name}"-"${bd_version_name}"/*.csv /work/sa.pw-bldmgr/blackduck_csv_reports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/
-							ssh -o StrictHostKeyChecking=no parallel@10.136.2.223 '[ -d /blackduckreports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/ ] && echo exists || mkdir -p /blackduckreports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/'
-							scp -o StrictHostKeyChecking=no licenseRiskProfile*.json securityRiskProfile*.json operationalRiskProfile*.json "${bd_project_name}"-"${bd_version_name}"/*.csv parallel@10.136.2.223:/blackduckreports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/
-						"""
 					}
-					else{
-						echo "Report generation not supported for this branch"
+				}
+				else
+				{
+					stage('Blackduck Analysis'){
+						dir("${REPOSITORY_NAME}"){
+							sh """
+								export DETECT_LATEST_RELEASE_VERSION="${DETECT_VERSION}"
+								/opt/bd_tools/detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name="${bd_project_name}" --detect.source.path="$projectSourcePath" --detect.code-location.name="${bd_project_name}-${bd_version_name}" --detect.project.version.name="${bd_version_name}" --detect.project.version.update=true --detect.timeout=6000 --detect.blackduck.signature.scanner.snippet.matching=SNIPPET_MATCHING --detect.conan.path=/usr/local/bin/conan --detect.excluded.detector.types=CPAN --detect.nuget.inspector.air.gap.path=/opt/packaged-inspectors/nuget/ --detect.gradle.inspector.air.gap.path=/opt/packaged-inspector/gradle/ --detect.dotnet.path=/usr/local/bin/dotnet
+							"""
+						}
 					}
-                }
-				sh '''
-						
-text="
+				}
+				error_check()
+				stage('Generating Report'){
+					dir("${REPOSITORY_NAME}"){
+						if ("${PW_BRANCH}" == "develop")
+						{
+							def exists = fileExists "/work/sa.pw-bldmgr/blackduck_csv_reports/${PW_BRANCH}/${REPOSITORY_NAME}/"
+							if (!exists)
+							{
+								sh """
+									mkdir -p /work/sa.pw-bldmgr/blackduck_csv_reports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/
+								"""
+							}
+							sh """
+								python3 /work/sa.pw-bldmgr/blackduck_csv_reports/projectReport.py "${bd_project_name}" "${bd_version_name}" "${COMMITID}"
+								cp licenseRiskProfile*.json securityRiskProfile*.json operationalRiskProfile*.json "${bd_project_name}"-"${bd_version_name}"/*.csv /work/sa.pw-bldmgr/blackduck_csv_reports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/
+								ssh -o StrictHostKeyChecking=no parallel@10.136.2.223 '[ -d /blackduckreports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/ ] && echo exists || mkdir -p /blackduckreports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/'
+								scp -o StrictHostKeyChecking=no licenseRiskProfile*.json securityRiskProfile*.json operationalRiskProfile*.json "${bd_project_name}"-"${bd_version_name}"/*.csv parallel@10.136.2.223:/blackduckreports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/
+							"""
+						}
+						else{
+							echo "Report generation not supported for this branch"
+						}
+					}
+							
+def myEmailText="""
 Hi
 						
 Blackduck analysis for ${REPOSITORY_NAME} completed. Please find the attachment to view the result
@@ -184,29 +206,33 @@ CSV Report generated and saved on nhcoverity and website servers
 Build URL : ${BUILD_URL}
 
 Thanks
-"
-						echo "$text" > mailBody.txt
-						
-						cat mailBody.txt | mail -s "${BUILD_DISPLAY_NAME}- BLACKDUCK - ${BUILD_NUMBER}" -r 'buildmgr@parallelwireless.com' releng@parallelwireless.com
-				'''
+"""
+					sh """
+							echo "${myEmailText}" > mailBody.txt
+							
+							cat mailBody.txt | mail -a "${REPOSITORY_NAME}"/"${bd_project_name}"-"${bd_version_name}"/*.csv -s "${BUILD_DISPLAY_NAME}- BLACKDUCK - ${BUILD_NUMBER}" -r 'buildmgr@parallelwireless.com' releng@parallelwireless.com
+					"""
+				}
 			}
             currentBuild.result = 'SUCCESS'
         } //closing try statement
         catch (Exception Error) {
-			sh '''
-						
-text="
+def myEmailText="""
 Hi
 						
-Blackduck analysis for ${REPOSITORY_NAME} has failed. Please check
-					
-Build URL : ${BUILD_URL}
-Thanks
-"
-						echo "$text" > mailBody.txt
+Blackduck analysis for ${REPOSITORY_NAME} completed. Please find the attachment to view the result
 						
-						cat mailBody.txt | mail -s "${BUILD_DISPLAY_NAME}-BLACKDUCK - ${BUILD_NUMBER} has failed" -r 'buildmgr@parallelwireless.com' releng@parallelwireless.com
-			'''
+CSV Report generated and saved on nhcoverity and website servers
+
+Build URL : ${BUILD_URL}
+
+Thanks
+"""
+			sh """
+					echo "${myEmailText}" > mailBody.txt
+				
+					cat mailBody.txt | mail -s "${BUILD_DISPLAY_NAME}- BLACKDUCK - ${BUILD_NUMBER}" -r 'buildmgr@parallelwireless.com' releng@parallelwireless.com
+			"""
 			throw Error
 			currentBuild.result = 'FAILURE'
         }//closing catch statement

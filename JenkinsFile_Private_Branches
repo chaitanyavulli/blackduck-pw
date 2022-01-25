@@ -147,51 +147,59 @@ timestamps{
 			error_check()
 			stage('Generating Report'){
 				dir("${REPOSITORY_NAME}"){
-					if ("${PW_BRANCH}" == "develop")
-					{
+						def exists = fileExists "/work/sa.pw-bldmgr/blackduck_csv_reports/${PW_BRANCH}/${REPOSITORY_NAME}/"
+						if (!exists)
+						{
+							sh """
+								mkdir -p /work/sa.pw-bldmgr/blackduck_csv_reports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/
+							"""
+						}
 						sh """
 							python3 /work/sa.pw-bldmgr/blackduck_csv_reports/projectReport.py "${bd_project_name}" "${bd_version_name}" "${COMMITID}"
+							cp licenseRiskProfile*.json securityRiskProfile*.json operationalRiskProfile*.json "${bd_project_name}"-"${bd_version_name}"/*.csv /work/sa.pw-bldmgr/blackduck_csv_reports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/
+							ssh -o StrictHostKeyChecking=no parallel@10.136.2.223 '[ -d /blackduckreports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/ ] && echo exists || mkdir -p /blackduckreports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/'
+							scp -o StrictHostKeyChecking=no licenseRiskProfile*.json securityRiskProfile*.json operationalRiskProfile*.json "${bd_project_name}"-"${bd_version_name}"/*.csv parallel@10.136.2.223:/blackduckreports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/
 						"""
-					}
-                }
-				sh '''
-						
-text="
+				}		
+def myEmailText="""
 Hi
 						
 Blackduck analysis for ${REPOSITORY_NAME} completed. Please find the attachment to view the result
 
-Repository : ${bd_project_name}
-Version : ${bd_version_name}
+Repository : '${bd_project_name}'
+Version : '${bd_version_name}'
 						
 CSV Report generated and saved on nhcoverity and website servers
 
 Build URL : ${BUILD_URL}
 
 Thanks
-"
-						echo "$text" > mailBody.txt
-						
-						cat mailBody.txt | mail -s "${BUILD_DISPLAY_NAME}- BLACKDUCK - ${BUILD_NUMBER}" -r 'buildmgr@parallelwireless.com' releng@parallelwireless.com
-				'''
-			}
+"""
+					sh """
+							echo "${myEmailText}" > mailBody.txt
+							
+							cat mailBody.txt | mail -a "${REPOSITORY_NAME}"/"${bd_project_name}"-"${bd_version_name}"/*.csv -s "${BUILD_DISPLAY_NAME}- BLACKDUCK - ${BUILD_NUMBER}" -r 'buildmgr@parallelwireless.com' releng@parallelwireless.com
+					"""
+				}
             currentBuild.result = 'SUCCESS'
         } //closing try statement
         catch (Exception Error) {
-			sh '''
-						
-text="
+def myEmailText="""
 Hi
 						
-Blackduck analysis for ${REPOSITORY_NAME} has failed. Please check
-					
-Build URL : ${BUILD_URL}
-Thanks
-"
-						echo "$text" > mailBody.txt
+Blackduck analysis for ${REPOSITORY_NAME} completed. Please find the attachment to view the result
 						
-						cat mailBody.txt | mail -s "${BUILD_DISPLAY_NAME}-BLACKDUCK - ${BUILD_NUMBER} has failed" -r 'buildmgr@parallelwireless.com' releng@parallelwireless.com
-			'''
+CSV Report generated and saved on nhcoverity and website servers
+
+Build URL : ${BUILD_URL}
+
+Thanks
+"""
+			sh """
+					echo "${myEmailText}" > mailBody.txt
+				
+					cat mailBody.txt | mail -s "${BUILD_DISPLAY_NAME}- BLACKDUCK - ${BUILD_NUMBER}" -r 'buildmgr@parallelwireless.com' releng@parallelwireless.com
+			"""
 			throw Error
 			currentBuild.result = 'FAILURE'
         }//closing catch statement
