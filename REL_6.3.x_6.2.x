@@ -145,9 +145,7 @@ timestamps{
 						echo "Report generation not supported for this branch"
 					}
                 }
-				sh '''
-						
-text="
+def myEmailText="""
 Hi
 						
 Blackduck analysis for ${REPOSITORY_NAME} completed. Please find the attachment to view the result
@@ -160,29 +158,32 @@ CSV Report generated and saved on nhcoverity and website servers
 Build URL : ${BUILD_URL}
 
 Thanks
-"
-						echo "$text" > mailBody.txt
-						
-						cat mailBody.txt | mail -s "${BUILD_DISPLAY_NAME}- BLACKDUCK - ${BUILD_NUMBER}" -r 'buildmgr@parallelwireless.com' releng@parallelwireless.com
-				'''
+"""
+					sh """
+							echo "${myEmailText}" > mailBody.txt
+							
+							cat mailBody.txt | mail -a "${REPOSITORY_NAME}"/"${bd_project_name}"-"${bd_version_name}"/*.csv -s "${BUILD_DISPLAY_NAME}- BLACKDUCK - ${BUILD_NUMBER}" -r 'buildmgr@parallelwireless.com' releng@parallelwireless.com
+					"""
 			}
             currentBuild.result = 'SUCCESS'
         } //closing try statement
         catch (Exception Error) {
-			sh '''
-						
-text="
+def myEmailText="""
 Hi
 						
-Blackduck analysis for ${REPOSITORY_NAME} has failed. Please check
-					
-Build URL : ${BUILD_URL}
-Thanks
-"
-						echo "$text" > mailBody.txt
+Blackduck analysis for ${REPOSITORY_NAME} completed. Please find the attachment to view the result
 						
-						cat mailBody.txt | mail -s "${BUILD_DISPLAY_NAME}-BLACKDUCK - ${BUILD_NUMBER} has failed" -r 'buildmgr@parallelwireless.com' releng@parallelwireless.com
-			'''
+CSV Report generated and saved on nhcoverity and website servers
+
+Build URL : ${BUILD_URL}
+
+Thanks
+"""
+			sh """
+					echo "${myEmailText}" > mailBody.txt
+				
+					cat mailBody.txt | mail -s "${BUILD_DISPLAY_NAME}- BLACKDUCK - ${BUILD_NUMBER}" -r 'buildmgr@parallelwireless.com' releng@parallelwireless.com
+			"""
 			throw Error
 			currentBuild.result = 'FAILURE'
         }//closing catch statement
