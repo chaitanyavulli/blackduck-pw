@@ -558,3 +558,10 @@ def xappdev(){
 	
 	}
 }
+def generic4gphy(){
+	dir('generic-4g-phy'){
+		sh '''
+			sh ./ci-build.sh
+		'''
+	}
+}
