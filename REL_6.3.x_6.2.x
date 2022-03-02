@@ -66,14 +66,14 @@ timestamps{
 				//checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'ScmName', name: '${REPOSITORY_NAME}']], userRemoteConfigs: [[credentialsId: 'e8ff24f6-10d1-4129-8c70-7c66d7c2d6d7', url: 'ssh://git@git.parallelwireless.net:7999/cd/${REPOSITORY_NAME}.git']]])
 				if ("${REPOSITORY_NAME}" == "rt-monitoring")
 				{
-					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/da/${REPOSITORY_NAME}.git']]])
+					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'pw2jenkins-vault', url: 'https://nhbbm.parallelwireless.net/scm/git/da/${REPOSITORY_NAME}.git']]])
 				}
                 else if("${REPOSITORY_NAME}" == "near_rtric")
 				{
-					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/near/${REPOSITORY_NAME}.git']]])
+					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'pw2jenkins-vault', url: 'https://nhbbm.parallelwireless.net/scm/git/near/${REPOSITORY_NAME}.git']]])
 				}
 				else{
-					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/cd/${REPOSITORY_NAME}.git']]])
+					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'pw2jenkins-vault', url: 'https://nhbbm.parallelwireless.net/scm/git/cd/${REPOSITORY_NAME}.git']]])
 				}
 			}
 			
