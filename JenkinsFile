@@ -1,6 +1,14 @@
 #!/user/bin/env groovy
 import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
-node('blackduck-scan')
+def build_node
+if ("${REPOSITORY_NAME}" == "near_rtric"){
+	build_node = "c7-nhdocker"
+}
+else{
+	build_node = "blackduck-scan"
+}
+
+node(build_node)
 {
 timestamps{
 	properties([
