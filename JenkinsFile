@@ -722,6 +722,7 @@ def analytics(){
 def generic4gphy(){
 	dir('generic-4g-phy'){
 		sh '''
+            export GIT_COMMIT=$(git rev-parse HEAD)
 			sh ./ci-build.sh
 		'''
 	}
@@ -729,6 +730,7 @@ def generic4gphy(){
 def generic5gphy(){
 	dir('generic-5g-phy'){
 		sh '''
+            export GIT_COMMIT=$(git rev-parse HEAD)
 			sh -xe ci-build.sh
 		'''
 	}
