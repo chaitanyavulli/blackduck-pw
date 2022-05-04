@@ -174,7 +174,7 @@ Thanks
 					sh """
 							echo "${myEmailText}" > mailBody.txt
 							
-							cat mailBody.txt | mail -a "${REPOSITORY_NAME}"/"${bd_project_name}"-"${bd_version_name}"/*.csv -s "${BUILD_DISPLAY_NAME}- BLACKDUCK - ${BUILD_NUMBER}" -r 'buildmgr@parallelwireless.com' releng@parallelwireless.com
+							cat mailBody.txt | mail -s "${BUILD_DISPLAY_NAME}- BLACKDUCK - ${BUILD_NUMBER}" -r 'buildmgr@parallelwireless.com' releng@parallelwireless.com
 					"""
 				}
             currentBuild.result = 'SUCCESS'
