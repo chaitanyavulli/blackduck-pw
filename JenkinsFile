@@ -557,26 +557,32 @@ def nrstack(){
                          -f docker/Dockerfile.user docker"
                     )
                     image.inside('-v"${HOME}":${HOME}') {
-                        /* fail on error
-                        sh """
-                            sh -xe build.sh all sa intel
-                        """
-                        */
-                        sh './build.sh all sa intel'
+                            try {
+                                sh """
+                                make -s clean
+                                make -s intel
+                                make install_intel
+                                """
+                            }catch(Exception Error){
+                                sh """
+                                dmesg
+                                """
+                                throw Error
+                            }
                     }
-					image.inside('-v"${HOME}":${HOME}') {
+                    image.inside('-v"${HOME}":${HOME}') {
                         full_hash = sh(
                             label: "Get full commit hash",
                             returnStdout: true,
                             script: "git log --format=format:%H -n 1"
                         ).trim()
-                        /* fail on error
-                        sh """
-                            sh -xe build.sh all sa host
-                        """
-                        */
+
                         sh 'free -g'
-                        sh './build.sh all sa host'
+                        sh """
+                        make -s clean
+                        make -s simulator
+                        make install_simulator
+                        """
                     }
 	
 	}
