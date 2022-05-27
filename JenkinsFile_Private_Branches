@@ -1,6 +1,14 @@
 #!/user/bin/env groovy
 import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
-node('blackduck-scan')
+def build_node
+if ("${REPOSITORY_NAME}" == "near_rtric"){
+	build_node = "c7-nhdocker"
+}
+else{
+	build_node = "blackduck-scan"
+}
+
+node(build_node)
 {
 timestamps{
 	properties([
@@ -16,6 +24,8 @@ timestamps{
 	def bd_project_name
 	def projectSourcePath
 	def bd_version_name
+	def changeSetCount = 0
+	
 	if ("${PW_BRANCH}" == "develop")
 	{
 		bd_version_name = "develop-HEAD"
@@ -26,8 +36,10 @@ timestamps{
 		bd_version_name = "${releaseBranchSplit[1]}"
 	}
 	else{
-		bd_version_name = "${PW_BRANCH}"
+		def privateBranchSplit = "${PW_BRANCH}".tokenize( '/' )
+		bd_version_name = "${privateBranchSplit[1]}"
 	}
+	
 	currentBuild.displayName = "#${BUILD_NUMBER}, ${REPOSITORY_NAME}"
 	currentBuild.description = "#${BUILD_NUMBER}, ${PW_BRANCH}"
 	
@@ -57,7 +69,7 @@ timestamps{
 			}
 			else if ("${REPOSITORY_NAME}" == "ems")
 			{
-				bd_project_name="unimanage-ems"
+				bd_project_name="ems-UniManage"
 			}
 			else if ("${REPOSITORY_NAME}" == "analytics")
 			{
@@ -72,95 +84,135 @@ timestamps{
 				//checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'ScmName', name: '${REPOSITORY_NAME}']], userRemoteConfigs: [[credentialsId: 'e8ff24f6-10d1-4129-8c70-7c66d7c2d6d7', url: 'ssh://git@git.parallelwireless.net:7999/cd/${REPOSITORY_NAME}.git']]])
 				if ("${REPOSITORY_NAME}" == "rt-monitoring")
 				{
-					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'pw2jenkins-vault', url: 'https://nhbbm.parallelwireless.net/scm/git/da/${REPOSITORY_NAME}.git']]])
+					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/da/${REPOSITORY_NAME}.git']]])
 				}
 				else if ("${REPOSITORY_NAME}" == "bbpms_bsp"){
-					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'pw2jenkins-vault', url: 'https://nhbbm.parallelwireless.net/scm/git/bsp/${REPOSITORY_NAME}.git']]])
+					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/bsp/${REPOSITORY_NAME}.git']]])
 
 				}
 				else if("${REPOSITORY_NAME}" == "uniperf"){
-					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'pw2jenkins-vault', url: 'https://nhbbm.parallelwireless.net/scm/git/tool/${REPOSITORY_NAME}.git']]])
+					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/tool/${REPOSITORY_NAME}.git']]])
 				}
 				else if("${REPOSITORY_NAME}" == "ems")
 				{
-					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'pw2jenkins-vault', url: 'https://nhbbm.parallelwireless.net/scm/git/um/${REPOSITORY_NAME}.git']]])
+					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/um/${REPOSITORY_NAME}.git']]])
 				}
                 else if("${REPOSITORY_NAME}" == "near_rtric")
 				{
-					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'pw2jenkins-vault', url: 'https://nhbbm.parallelwireless.net/scm/git/near/${REPOSITORY_NAME}.git']]])
+					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/near/${REPOSITORY_NAME}.git']]])
 				}
 				else if("${REPOSITORY_NAME}" == "analytics")
 				{
-					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'pw2jenkins-vault', url: 'https://nhbbm.parallelwireless.net/scm/git/da/${REPOSITORY_NAME}.git']]])
-					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '3rdptysource'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '3rdptysource'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'pw2jenkins-vault', url: 'ssh://git@nhbbm.parallelwireless.net:7999/git/da/3rdptysource.git']]])
+					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/da/${REPOSITORY_NAME}.git']]])
+					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '3rdptysource'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '3rdptysource'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'ssh://git@nhbbm.parallelwireless.net:7999/git/da/3rdptysource.git']]])
 				}
 				else{
-					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'pw2jenkins-vault', url: 'https://nhbbm.parallelwireless.net/scm/git/cd/${REPOSITORY_NAME}.git']]])
+					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/cd/${REPOSITORY_NAME}.git']]])
 				}
 			}
-			
-			stage('Build Product'){
-				REPONAME = "${REPOSITORY_NAME}".replaceAll("-","");
-				if ("$REPONAME" == "2gstack")
-				{
-					REPONAME="twogstack"
-				}
-				"$REPONAME"()
-			}
-			
-			
-			dir("${REPOSITORY_NAME}"){
-				COMMITID = sh(script:"git rev-parse HEAD", returnStdout: true).trim()
-				sh """
-					rm -rf .git/
-				"""
-			}
-			
-			//sizeWorkspace = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}".size()
-			sizeWorkspace = sh(script:"du -sk \${REPOSITORY_NAME}/ | awk '{print \$1}'", returnStdout: true).toInteger()
-			echo "Workspace Size = ${sizeWorkspace}"
-			
-			if ("${sizeWorkspace}".toInteger() > 5242880)
+			stage('BLACKDUCK SCAN CHECK')
 			{
-				stage('Blackduck Analysis'){
-					dir("${REPOSITORY_NAME}"){
-						sh """
-							export DETECT_LATEST_RELEASE_VERSION="${DETECT_VERSION}"
-							find . -empty -type d -delete
-							export bd_token="${BDToken}"
-							/opt/bd_tools/enhanced-splitter.sh "${bd_project_name}" ${bd_version_name} "${bd_project_name}-${bd_version_name}" "${bd_project_name}" "$projectSourcePath"
-						"""
-					}
-				}
-			}
-			else
-			{
-				stage('Blackduck Analysis'){
-					dir("${REPOSITORY_NAME}"){
-						sh """
-							export DETECT_LATEST_RELEASE_VERSION="${DETECT_VERSION}"
-							/opt/bd_tools/detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name="${bd_project_name}" --detect.source.path="$projectSourcePath" --detect.code-location.name="${bd_project_name}-${bd_version_name}" --detect.project.version.name="${bd_version_name}" --detect.project.version.update=true --detect.timeout=6000 --detect.blackduck.signature.scanner.snippet.matching=SNIPPET_MATCHING --detect.conan.path=/usr/local/bin/conan --detect.excluded.detector.types=CPAN --detect.nuget.inspector.air.gap.path=/opt/packaged-inspectors/nuget/ --detect.gradle.inspector.air.gap.path=/opt/packaged-inspector/gradle/ --detect.dotnet.path=/usr/local/bin/dotnet
-						"""
-					}
-				}
-			}
-			error_check()
-			stage('Generating Report'){
 				dir("${REPOSITORY_NAME}"){
-						def exists = fileExists "/work/sa.pw-bldmgr/blackduck_csv_reports/${PW_BRANCH}/${REPOSITORY_NAME}/"
-						if (!exists)
-						{
+					changeSetCount = sh(script: 'git log --since="7 day ago" --name-only --pretty=format: | sort | uniq | awk NF | wc -l', returnStdout: true).trim()
+					sh """
+						echo "Changes from last one week :"
+					
+						git log --since="7 day ago" --name-only --pretty=format: | sort | uniq | awk NF 
+					"""
+					
+					echo "Number of changes : ${changeSetCount}"
+				}
+			}
+			if ("${changeSetCount}" == "0")
+			{
+				echo "${REPOSITORY_NAME} doesn't have any changes from last one week. Aborting blackduck scan"
+			}
+			else{
+				stage('Build Product'){
+					REPONAME = "${REPOSITORY_NAME}".replaceAll("-","");
+					if ("$REPONAME" == "2gstack")
+					{
+						REPONAME="twogstack"
+					}
+					"$REPONAME"()
+				}
+				
+				
+				dir("${REPOSITORY_NAME}"){
+					COMMITID = sh(script:"git rev-parse HEAD", returnStdout: true).trim()
+					sh """
+						rm -rf .git/
+					"""
+				}
+				
+				//sizeWorkspace = "${WORKSPACE}/${verCode}/${REPOSITORY_NAME}".size()
+				sizeWorkspace = sh(script:"du -sk \${REPOSITORY_NAME}/ | awk '{print \$1}'", returnStdout: true).toInteger()
+				echo "Workspace Size = ${sizeWorkspace}"
+				
+				if ("${sizeWorkspace}".toInteger() > 5242880)
+				{
+					stage('Blackduck Analysis'){
+						dir("${REPOSITORY_NAME}"){
 							sh """
-								mkdir -p /work/sa.pw-bldmgr/blackduck_csv_reports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/
+								export DETECT_LATEST_RELEASE_VERSION="${DETECT_VERSION}"
+								find . -empty -type d -delete
+								export bd_token="${BDToken}"
+								/opt/bd_tools/enhanced-splitter.sh "${bd_project_name}" ${bd_version_name} "${bd_project_name}-${bd_version_name}" "${bd_project_name}" "$projectSourcePath"
 							"""
 						}
-						sh """
-							python3 /work/sa.pw-bldmgr/blackduck_csv_reports/projectReport.py "${bd_project_name}" "${bd_version_name}" "${COMMITID}"
-							cp licenseRiskProfile*.json securityRiskProfile*.json operationalRiskProfile*.json "${bd_project_name}"-"${bd_version_name}"/*.csv /work/sa.pw-bldmgr/blackduck_csv_reports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/
-							ssh -o StrictHostKeyChecking=no parallel@10.136.2.223 '[ -d /blackduckreports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/ ] && echo exists || mkdir -p /blackduckreports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/'
-							scp -o StrictHostKeyChecking=no licenseRiskProfile*.json securityRiskProfile*.json operationalRiskProfile*.json "${bd_project_name}"-"${bd_version_name}"/*.csv parallel@10.136.2.223:/blackduckreports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/
-						"""
-				}		
+					}
+				}
+				else
+				{
+					stage('Blackduck Analysis'){
+						dir("${REPOSITORY_NAME}"){
+							sh """
+								export DETECT_LATEST_RELEASE_VERSION="${DETECT_VERSION}"
+								/opt/bd_tools/detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name="${bd_project_name}" --detect.source.path="$projectSourcePath" --detect.code-location.name="${bd_project_name}-${bd_version_name}" --detect.project.version.name="${bd_version_name}" --detect.project.version.update=true --detect.timeout=6000 --detect.blackduck.signature.scanner.snippet.matching=SNIPPET_MATCHING_ONLY --detect.conan.path=/usr/local/bin/conan --detect.excluded.detector.types=CPAN --detect.nuget.inspector.air.gap.path=/opt/packaged-inspectors/nuget/ --detect.gradle.inspector.air.gap.path=/opt/packaged-inspector/gradle/ --detect.dotnet.path=/usr/local/bin/dotnet
+							"""
+						}
+					}
+				}
+				error_check()
+				stage('Generating Report'){
+					dir("${REPOSITORY_NAME}"){
+						if ("${PW_BRANCH}" == "develop")
+						{
+							def exists = fileExists "/work/sa.pw-bldmgr/blackduck_csv_reports/${PW_BRANCH}/${REPOSITORY_NAME}/"
+							if (!exists)
+							{
+								sh """
+									mkdir -p /work/sa.pw-bldmgr/blackduck_csv_reports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/
+								"""
+							}
+							sh """
+								python3 /work/sa.pw-bldmgr/blackduck_csv_reports/projectReport.py "${bd_project_name}" "${bd_version_name}" "${COMMITID}"
+								cd "${bd_project_name}"-"${bd_version_name}"
+								mv *.csv \$(ls *.csv | sed 's/-HEAD//g')
+								cd ..
+								cp licenseRiskProfile*.json securityRiskProfile*.json operationalRiskProfile*.json "${bd_project_name}"-"${bd_version_name}"/*.csv /work/sa.pw-bldmgr/blackduck_csv_reports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/
+								ssh -o StrictHostKeyChecking=no parallel@10.136.18.115 '[ -d /blackduckreports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/ ] && echo exists || mkdir -p /blackduckreports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/'
+								scp -o StrictHostKeyChecking=no licenseRiskProfile*.json securityRiskProfile*.json operationalRiskProfile*.json "${bd_project_name}"-"${bd_version_name}"/*.csv parallel@10.136.18.115:/blackduckreports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/
+							"""
+						}
+						else{
+							def exists = fileExists "/work/sa.pw-bldmgr/blackduck_csv_reports/${PW_BRANCH}/${REPOSITORY_NAME}/"
+							if (!exists)
+							{
+								sh """
+									mkdir -p /work/sa.pw-bldmgr/blackduck_csv_reports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/
+								"""
+							}
+							sh """
+								python3 /work/sa.pw-bldmgr/blackduck_csv_reports/projectReport.py "${bd_project_name}" "${bd_version_name}" "${COMMITID}"
+
+								cp licenseRiskProfile*.json securityRiskProfile*.json operationalRiskProfile*.json "${bd_project_name}"-"${bd_version_name}"/*.csv /work/sa.pw-bldmgr/blackduck_csv_reports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/
+								ssh -o StrictHostKeyChecking=no parallel@10.136.18.115 '[ -d /blackduckreports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/ ] && echo exists || mkdir -p /blackduckreports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/'
+								scp -o StrictHostKeyChecking=no licenseRiskProfile*.json securityRiskProfile*.json operationalRiskProfile*.json "${bd_project_name}"-"${bd_version_name}"/*.csv parallel@10.136.18.115:/blackduckreports/"${PW_BRANCH}"/"${REPOSITORY_NAME}"/
+							"""
+						}
+					}
+							
 def myEmailText="""
 Hi
 						
@@ -178,9 +230,10 @@ Thanks
 					sh """
 							echo "${myEmailText}" > mailBody.txt
 							
-							cat mailBody.txt | mail -a "${REPOSITORY_NAME}"/"${bd_project_name}"-"${bd_version_name}"/*.csv -s "${BUILD_DISPLAY_NAME}- BLACKDUCK - ${BUILD_NUMBER}" -r 'buildmgr@parallelwireless.com' releng@parallelwireless.com
+							cat mailBody.txt | mail -a "${REPOSITORY_NAME}"/"${bd_project_name}"-"${bd_version_name}"/*.csv -s "${BUILD_DISPLAY_NAME}- BLACKDUCK - ${BUILD_NUMBER} SUCCESS" -r 'buildmgr@parallelwireless.com' releng@parallelwireless.com
 					"""
 				}
+			}
             currentBuild.result = 'SUCCESS'
         } //closing try statement
         catch (Exception Error) {
@@ -198,7 +251,7 @@ Thanks
 			sh """
 					echo "${myEmailText}" > mailBody.txt
 				
-					cat mailBody.txt | mail -s "${BUILD_DISPLAY_NAME}- BLACKDUCK - ${BUILD_NUMBER}" -r 'buildmgr@parallelwireless.com' releng@parallelwireless.com
+					cat mailBody.txt | mail -s "${BUILD_DISPLAY_NAME}- BLACKDUCK - ${BUILD_NUMBER} has failed " -r 'buildmgr@parallelwireless.com' releng@parallelwireless.com
 			"""
 			throw Error
 			currentBuild.result = 'FAILURE'
@@ -270,6 +323,15 @@ def vru5gphy()
 		sh '''
 			export GIT_COMMIT=$(git rev-parse HEAD)
 			sh -xe ci-build.sh
+		'''
+	}
+}
+def vrucommonphy(){
+	dir('vru-common-phy'){
+		sh '''
+			export GIT_COMMIT=$(git rev-parse HEAD)
+			sh -xe ci-build.sh
+			sh -xe ci-make.sh
 		'''
 	}
 }
@@ -509,26 +571,32 @@ def nrstack(){
                          -f docker/Dockerfile.user docker"
                     )
                     image.inside('-v"${HOME}":${HOME}') {
-                        /* fail on error
-                        sh """
-                            sh -xe build.sh all sa intel
-                        """
-                        */
-                        sh './build.sh all sa intel'
+                            try {
+                                sh """
+                                make -s clean
+                                make -s intel
+                                make install_intel
+                                """
+                            }catch(Exception Error){
+                                sh """
+                                dmesg
+                                """
+                                throw Error
+                            }
                     }
-					image.inside('-v"${HOME}":${HOME}') {
+                    image.inside('-v"${HOME}":${HOME}') {
                         full_hash = sh(
                             label: "Get full commit hash",
                             returnStdout: true,
                             script: "git log --format=format:%H -n 1"
                         ).trim()
-                        /* fail on error
-                        sh """
-                            sh -xe build.sh all sa host
-                        """
-                        */
+
                         sh 'free -g'
-                        sh './build.sh all sa host'
+                        sh """
+                        make -s clean
+                        make -s simulator
+                        make install_simulator
+                        """
                     }
 	
 	}
@@ -613,6 +681,7 @@ def uniperf(){
 			mv temp/pwfp-cli hng_code_dir/hng/ix64_x86_hng/install/bin/pwfp-cli
 			rmdir temp
 		"""
+
 	}
 }
 def ems(){
@@ -673,7 +742,16 @@ def analytics(){
 def generic4gphy(){
 	dir('generic-4g-phy'){
 		sh '''
+            export GIT_COMMIT=$(git rev-parse HEAD)
 			sh ./ci-build.sh
+		'''
+	}
+}
+def generic5gphy(){
+	dir('generic-5g-phy'){
+		sh '''
+            export GIT_COMMIT=$(git rev-parse HEAD)
+			sh -xe ci-build.sh
 		'''
 	}
 }
