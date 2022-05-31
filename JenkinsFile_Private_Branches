@@ -168,7 +168,7 @@ timestamps{
 						dir("${REPOSITORY_NAME}"){
 							sh """
 								export DETECT_LATEST_RELEASE_VERSION="${DETECT_VERSION}"
-								/opt/bd_tools/detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name="${bd_project_name}" --detect.source.path="$projectSourcePath" --detect.code-location.name="${bd_project_name}-${bd_version_name}" --detect.project.version.name="${bd_version_name}" --detect.project.version.update=true --detect.timeout=6000 --detect.blackduck.signature.scanner.snippet.matching=SNIPPET_MATCHING_ONLY --detect.conan.path=/usr/local/bin/conan --detect.excluded.detector.types=CPAN --detect.nuget.inspector.air.gap.path=/opt/packaged-inspectors/nuget/ --detect.gradle.inspector.air.gap.path=/opt/packaged-inspector/gradle/ --detect.dotnet.path=/usr/local/bin/dotnet
+								/opt/bd_tools/detect.sh --blackduck.url=https://parallelwireless.app.blackduck.com --blackduck.api.token="${BDToken}" --detect.project.name="${bd_project_name}" --detect.source.path="$projectSourcePath" --detect.code-location.name="${bd_project_name}-${bd_version_name}" --detect.project.version.name="${bd_version_name}" --detect.project.version.update=true --detect.timeout=6000 --detect.blackduck.signature.scanner.snippet.matching=SNIPPET_MATCHING --detect.conan.path=/usr/local/bin/conan --detect.excluded.detector.types=CPAN --detect.nuget.inspector.air.gap.path=/opt/packaged-inspectors/nuget/ --detect.gradle.inspector.air.gap.path=/opt/packaged-inspector/gradle/ --detect.dotnet.path=/usr/local/bin/dotnet
 							"""
 						}
 					}
