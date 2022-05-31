@@ -24,7 +24,7 @@ timestamps{
 	def bd_project_name
 	def projectSourcePath
 	def bd_version_name
-	def changeSetCount = 0
+	def changeSetCount = 1
 	
 	if ("${PW_BRANCH}" == "develop")
 	{
@@ -108,19 +108,6 @@ timestamps{
 				}
 				else{
 					checkout([$class: 'GitSCM', branches: [[name: '*/${PW_BRANCH}']], extensions: [[$class: 'ScmName', name: '${REPOSITORY_NAME}'], [$class: 'RelativeTargetDirectory', relativeTargetDir: '${REPOSITORY_NAME}'], [$class: 'GitLFSPull'], [$class: 'LocalBranch', localBranch: '${PW_BRANCH}']], userRemoteConfigs: [[credentialsId: 'vaultpwbldmgr', url: 'https://nhbbm.parallelwireless.net/scm/git/cd/${REPOSITORY_NAME}.git']]])
-				}
-			}
-			stage('BLACKDUCK SCAN CHECK')
-			{
-				dir("${REPOSITORY_NAME}"){
-					changeSetCount = sh(script: 'git log --since="7 day ago" --name-only --pretty=format: | sort | uniq | awk NF | wc -l', returnStdout: true).trim()
-					sh """
-						echo "Changes from last one week :"
-					
-						git log --since="7 day ago" --name-only --pretty=format: | sort | uniq | awk NF 
-					"""
-					
-					echo "Number of changes : ${changeSetCount}"
 				}
 			}
 			if ("${changeSetCount}" == "0")
